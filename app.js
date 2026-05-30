@@ -27,7 +27,7 @@ function showState(id) {
 async function api(method, path, body) {
     const opts = {
         method,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
     };
     if (currentSession) opts.headers['Authorization'] = 'Bearer ' + currentSession;
     if (body) opts.body = JSON.stringify(body);

@@ -383,7 +383,7 @@ const MONTHS_ES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','
 async function dashApi(method, path, body) {
     const opts = {
         method,
-        headers: { 'Content-Type': 'application/json', 'X-Dashboard-Key': DASH_KEY }
+        headers: { 'Content-Type': 'application/json', 'X-Dashboard-Key': DASH_KEY, 'ngrok-skip-browser-warning': 'true' }
     };
     if (body) opts.body = JSON.stringify(body);
     try {
