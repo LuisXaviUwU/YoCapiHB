@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — yocapi_pr Cumpleaños</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .dash-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            width: 100%;
+            max-width: 820px;
+            margin-top: 8px;
+        }
+        @media (max-width: 620px) { .dash-grid { grid-template-columns: 1fr; } }
+
+        .dash-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            backdrop-filter: blur(20px);
+        }
+        .dash-card-full { grid-column: 1 / -1; }
+
+        .dash-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        .dash-big-num {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3.5rem;
+            color: var(--text-hi);
+            line-height: 1;
+        }
+        .dash-big-label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .dot-green { background: var(--success); box-shadow: 0 0 6px var(--success); }
+        .dot-red   { background: var(--danger);  box-shadow: 0 0 6px var(--danger); }
+        .dot-gray  { background: var(--text-dim); }
+
+        .upcoming-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .upcoming-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: var(--bg-panel);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+        .upcoming-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--border);
+            flex-shrink: 0;
+        }
+        .upcoming-name {
+            font-weight: 600;
+            color: var(--text-hi);
+            font-size: 0.9rem;
+        }
+        .upcoming-date {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+        .upcoming-badge {
+            margin-left: auto;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: rgba(145,70,255,0.15);
+            color: var(--purple-lt);
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .upcoming-badge.today {
+            background: rgba(61,220,132,0.15);
+            color: var(--success);
+            border-color: rgba(61,220,132,0.3);
+        }
+
+        .reward-input-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .reward-input {
+            flex: 1;
+            padding: 10px 14px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-hi);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            outline: none;
+        }
+        .reward-input:focus { border-color: var(--purple-lt); }
+        .reward-input::placeholder { color: var(--text-dim); }
+
+        .reward-add-btn {
+            padding: 10px 16px;
+            background: var(--purple);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background 0.2s;
+        }
+        .reward-add-btn:hover { background: #a970ff; }
+
+        .reward-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .reward-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            background: rgba(145,70,255,0.1);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.78rem;
+            color: var(--purple-lt);
+            font-family: monospace;
+        }
+        .reward-tag button {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 0 2px;
+        }
+        .reward-tag button:hover { color: var(--danger); }
+
+        .config-section { margin-top: 20px; }
+        .config-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+        }
+        .config-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-hi);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        .config-input:focus { border-color: var(--purple-lt); }
+
+        .dash-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--purple);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: 0.88rem;
+            margin-top: 12px;
+            transition: background 0.2s, transform 0.15s;
+        }
+        .dash-btn:hover { background: #a970ff; transform: translateY(-1px); }
+        .dash-btn.btn-green {
+            background: rgba(61,220,132,0.15);
+            color: var(--success);
+            border: 1px solid rgba(61,220,132,0.3);
+        }
+        .dash-btn.btn-green:hover { background: rgba(61,220,132,0.25); }
+
+        .login-blocker {
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+        }
+        .dash-header {
+            width: 100%;
+            max-width: 820px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .dash-header h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            letter-spacing: 0.05em;
+            color: var(--text-hi);
+        }
+        .msg {
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+        .msg-ok   { background: rgba(61,220,132,0.1);  color: var(--success); border: 1px solid rgba(61,220,132,0.25); }
+        .msg-err  { background: rgba(255,92,92,0.1);   color: var(--danger);  border: 1px solid rgba(255,92,92,0.25); }
+        .empty-state { color: var(--text-dim); font-size: 0.9rem; text-align: center; padding: 20px 0; }
+    </style>
+</head>
+<body>
+
+<div class="bg-layer">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="noise"></div>
+</div>
+
+<main class="main">
+
+    <header class="header" style="max-width:820px;">
+        <div class="header-logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#bf94ff">
+                <path d="M2.149 0l-1.612 4.819v16.696h5.731v2.485h2.979l2.483-2.485h3.724l4.967-4.966v-16.549h-18.272zm16.164 14.861l-2.978 2.977h-4.967l-2.483 2.485v-2.485h-4.473v-13.08h14.901v10.103zm-2.978-7.443v5.966h-2.23v-5.966h2.23zm-5.954 0v5.966h-2.23v-5.966h2.23z" fill-rule="evenodd"/>
+            </svg>
+            <span>Dashboard — Cumpleaños</span>
+        </div>
+        <a href="index.html" class="btn-secondary" style="width:auto; padding:8px 16px; font-size:0.82rem; margin:0;">← Página pública</a>
+    </header>
+
+    <!-- LOGIN PANEL -->
+    <div id="panel-login" class="login-blocker">
+        <div class="card">
+            <div class="card-glow"></div>
+            <h2 class="card-title" style="font-size:2rem;">Panel de<br><em>yocapi_pr</em></h2>
+            <p class="card-desc">Ingresa tu clave de acceso para ver el dashboard.</p>
+            <label class="config-label">Clave de acceso</label>
+            <input type="password" id="dash-key-input" class="config-input" placeholder="Tu clave del dashboard">
+            <button id="btn-dash-login" class="btn-primary" style="margin-top:14px;">Entrar</button>
+            <div id="login-msg"></div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD PANEL -->
+    <div id="panel-dash" style="display:none; width:100%; display:none; flex-direction:column; align-items:center;">
+
+        <div class="dash-header">
+            <h1>🎂 Dashboard</h1>
+            <button id="btn-run-cron" class="dash-btn btn-green">▶ Revisar ahora</button>
+        </div>
+
+        <div class="dash-grid">
+
+            <!-- Stats -->
+            <div class="dash-card">
+                <p class="dash-title">Total registrados</p>
+                <div class="dash-big-num" id="stat-total">—</div>
+                <div class="dash-big-label">seguidores con cumpleaños</div>
+            </div>
+
+            <!-- Estado del sistema -->
+            <div class="dash-card">
+                <p class="dash-title">Estado del sistema</p>
+                <div id="sys-status" style="display:flex; flex-direction:column; gap:10px; font-size:0.88rem;">
+                    <div><span class="status-dot dot-gray" id="dot-streamer"></span><span id="label-streamer">Cargando...</span></div>
+                    <div><span class="status-dot dot-gray" id="dot-rewards"></span><span id="label-rewards">Cargando...</span></div>
+                    <div style="margin-top:8px;">
+                        <a id="link-streamer-auth" href="#" class="dash-btn" style="display:none; text-decoration:none; margin-top:0;">
+                            Autenticar cuenta de Twitch
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cumpleaños próximos -->
+            <div class="dash-card dash-card-full">
+                <p class="dash-title">Próximos 7 días</p>
+                <div id="upcoming-list" class="upcoming-list">
+                    <div class="empty-state">Cargando...</div>
+                </div>
+            </div>
+
+            <!-- Configurar reward IDs -->
+            <div class="dash-card dash-card-full">
+                <p class="dash-title">IDs de recompensas a activar</p>
+                <p style="font-size:0.82rem; color:var(--text-dim); margin-bottom:14px; line-height:1.6;">
+                    Pega aquí los IDs de los Channel Point Rewards de Twitch que se activarán
+                    el día del cumpleaños (silbato, música, voz, etc.).<br>
+                    Los IDs se consiguen desde la API de Twitch o con un script simple.
+                </p>
+                <div class="reward-input-row">
+                    <input type="text" id="reward-id-input" class="reward-input" placeholder="Pega el ID del reward aquí">
+                    <button id="reward-add-btn" class="reward-add-btn">+</button>
+                </div>
+                <div id="reward-tags" class="reward-tags"></div>
+                <button id="btn-save-rewards" class="dash-btn" style="margin-top:16px;">Guardar IDs</button>
+                <div id="rewards-msg"></div>
+            </div>
+
+            <!-- Configuración del sistema -->
+            <div class="dash-card dash-card-full">
+                <p class="dash-title">Configuración inicial</p>
+
+                <div class="config-section">
+                    <label class="config-label">Twitch Client ID</label>
+                    <input type="text" id="cfg-client-id" class="config-input" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                </div>
+                <div class="config-section">
+                    <label class="config-label">Twitch Client Secret</label>
+                    <input type="password" id="cfg-client-secret" class="config-input" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                </div>
+                <div class="config-section">
+                    <label class="config-label">URL del backend (tu dominio ngrok)</label>
+                    <input type="text" id="cfg-backend-url" class="config-input" placeholder="https://abc-123.ngrok-free.app">
+                    <small style="color:var(--text-dim); font-size:0.75rem; margin-top:4px; display:block;">
+                        Esta URL se usa como redirect de Twitch — debe coincidir con la registrada en dev.twitch.tv
+                    </small>
+                </div>
+                <div class="config-section">
+                    <label class="config-label">URL del frontend (GitHub Pages)</label>
+                    <input type="text" id="cfg-frontend-url" class="config-input" placeholder="https://tu-usuario.github.io/birthday">
+                </div>
+                <button id="btn-save-config" class="dash-btn">Guardar configuración</button>
+                <div id="config-msg"></div>
+
+                <div class="config-section" style="margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
+                    <label class="config-label">Clave del dashboard (mínimo 8 caracteres)</label>
+                    <input type="password" id="cfg-dash-key" class="config-input" placeholder="Clave secreta para este panel">
+                    <button id="btn-save-dash-key" class="dash-btn" style="margin-top:10px;">Cambiar clave</button>
+                    <div id="dash-key-msg"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="cron-result" style="width:100%; max-width:820px; margin-top:12px;"></div>
+
+</main>
+
+<script src="config.js"></script>
+<script>
+// ─── Dashboard key ────────────────────────────────────────────────────────────
+let DASH_KEY = localStorage.getItem('bday_dash_key') || '';
+let dashData = null;
+let rewardIds = [];
+
+const MONTHS_ES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+async function dashApi(method, path, body) {
+    const opts = {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-Dashboard-Key': DASH_KEY }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    try {
+        const res = await fetch(BACKEND_URL + path, opts);
+        const data = await res.json();
+        return { ok: res.ok, status: res.status, data };
+    } catch (e) {
+        return { ok: false, status: 0, data: { error: e.message } };
+    }
+}
+
+function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.className = 'msg ' + (type === 'ok' ? 'msg-ok' : 'msg-err');
+    el.textContent = text;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// ─── Login ────────────────────────────────────────────────────────────────────
+document.getElementById('btn-dash-login').addEventListener('click', async () => {
+    const key = document.getElementById('dash-key-input').value.trim();
+    if (!key) return;
+    DASH_KEY = key;
+    const r = await dashApi('GET', '/api/dashboard');
+    if (r.ok) {
+        localStorage.setItem('bday_dash_key', key);
+        document.getElementById('panel-login').style.display = 'none';
+        document.getElementById('panel-dash').style.display = 'flex';
+        loadDashboard(r.data);
+    } else {
+        document.getElementById('login-msg').className = 'msg msg-err';
+        document.getElementById('login-msg').textContent = 'Clave incorrecta o servidor apagado.';
+        document.getElementById('login-msg').style.display = 'block';
+    }
+});
+document.getElementById('dash-key-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('btn-dash-login').click();
+});
+
+// Auto-login si tiene key guardada
+if (DASH_KEY) {
+    dashApi('GET', '/api/dashboard').then(r => {
+        if (r.ok) {
+            document.getElementById('panel-login').style.display = 'none';
+            document.getElementById('panel-dash').style.display = 'flex';
+            loadDashboard(r.data);
+        } else {
+            localStorage.removeItem('bday_dash_key');
+            DASH_KEY = '';
+        }
+    });
+}
+
+// ─── Cargar dashboard ─────────────────────────────────────────────────────────
+function loadDashboard(data) {
+    dashData = data;
+
+    // Stats
+    document.getElementById('stat-total').textContent = data.total || 0;
+
+    // Estado del sistema
+    const streamerOk = data.streamerAuth;
+    const rewardsOk  = data.rewardIds?.length > 0;
+
+    document.getElementById('dot-streamer').className = 'status-dot ' + (streamerOk ? 'dot-green' : 'dot-red');
+    document.getElementById('label-streamer').textContent = streamerOk
+        ? '✓ Cuenta de Twitch autenticada'
+        : '✗ Cuenta de Twitch no autenticada';
+
+    document.getElementById('dot-rewards').className = 'status-dot ' + (rewardsOk ? 'dot-green' : 'dot-gray');
+    document.getElementById('label-rewards').textContent = rewardsOk
+        ? `✓ ${data.rewardIds.length} reward(s) configurados`
+        : '⚠ Sin reward IDs configurados';
+
+    const linkAuth = document.getElementById('link-streamer-auth');
+    if (!streamerOk) {
+        linkAuth.style.display = 'inline-flex';
+        linkAuth.href = BACKEND_URL + '/auth/twitch/streamer';
+    } else {
+        linkAuth.style.display = 'none';
+    }
+
+    // Rewards
+    rewardIds = [...(data.rewardIds || [])];
+    renderRewardTags();
+
+    // Upcoming
+    renderUpcoming(data.upcoming || []);
+}
+
+// ─── Upcoming ─────────────────────────────────────────────────────────────────
+function renderUpcoming(upcoming) {
+    const container = document.getElementById('upcoming-list');
+    if (!upcoming.length) {
+        container.innerHTML = '<div class="empty-state">No hay cumpleaños en los próximos 7 días 🎈</div>';
+        return;
+    }
+    container.innerHTML = '';
+    for (const day of upcoming) {
+        for (const user of day.users) {
+            const item = document.createElement('div');
+            item.className = 'upcoming-item';
+            const isToday = day.daysFromNow === 0;
+            const isTomorrow = day.daysFromNow === 1;
+            const label = isToday ? '🎂 Hoy' : isTomorrow ? 'Mañana' : `En ${day.daysFromNow} días`;
+            item.innerHTML = `
+                <div class="upcoming-avatar" style="background:var(--border); display:flex; align-items:center; justify-content:center; color:var(--text-dim); font-weight:700; font-size:0.9rem;">
+                    ${user.display_name[0].toUpperCase()}
+                </div>
+                <div>
+                    <div class="upcoming-name">${escHtml(user.display_name)}</div>
+                    <div class="upcoming-date">${day.day} de ${MONTHS_ES[day.month]}</div>
+                </div>
+                <span class="upcoming-badge ${isToday ? 'today' : ''}">${label}</span>
+            `;
+            container.appendChild(item);
+        }
+    }
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Reward tags ──────────────────────────────────────────────────────────────
+function renderRewardTags() {
+    const container = document.getElementById('reward-tags');
+    container.innerHTML = '';
+    if (rewardIds.length === 0) {
+        container.innerHTML = '<span style="font-size:0.8rem; color:var(--text-dim);">Sin IDs agregados</span>';
+        return;
+    }
+    rewardIds.forEach((id, i) => {
+        const tag = document.createElement('div');
+        tag.className = 'reward-tag';
+        tag.innerHTML = `${escHtml(id)} <button data-i="${i}" title="Eliminar">✕</button>`;
+        tag.querySelector('button').addEventListener('click', () => {
+            rewardIds.splice(i, 1);
+            renderRewardTags();
+        });
+        container.appendChild(tag);
+    });
+}
+
+document.getElementById('reward-add-btn').addEventListener('click', () => {
+    const input = document.getElementById('reward-id-input');
+    const val = input.value.trim();
+    if (!val) return;
+    if (!rewardIds.includes(val)) rewardIds.push(val);
+    input.value = '';
+    renderRewardTags();
+});
+document.getElementById('reward-id-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('reward-add-btn').click();
+});
+
+document.getElementById('btn-save-rewards').addEventListener('click', async () => {
+    const r = await dashApi('POST', '/api/config/rewards', { reward_ids: rewardIds });
+    showMsg('rewards-msg', r.ok ? '✓ IDs guardados correctamente' : '✗ Error: ' + r.data?.error, r.ok ? 'ok' : 'err');
+});
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+document.getElementById('btn-save-config').addEventListener('click', async () => {
+    const client_id     = document.getElementById('cfg-client-id').value.trim();
+    const client_secret = document.getElementById('cfg-client-secret').value.trim();
+    const frontend_url  = document.getElementById('cfg-frontend-url').value.trim();
+    const backend_url   = document.getElementById('cfg-backend-url').value.trim();
+    if (!client_id || !client_secret) {
+        showMsg('config-msg', 'Client ID y Secret son requeridos', 'err');
+        return;
+    }
+    const r = await dashApi('POST', '/api/config/setup', { client_id, client_secret, frontend_url, backend_url });
+    showMsg('config-msg', r.ok ? '✓ Configuración guardada' : '✗ Error: ' + r.data?.error, r.ok ? 'ok' : 'err');
+});
+
+document.getElementById('btn-save-dash-key').addEventListener('click', async () => {
+    const key = document.getElementById('cfg-dash-key').value.trim();
+    if (key.length < 8) { showMsg('dash-key-msg', 'Mínimo 8 caracteres', 'err'); return; }
+    const r = await dashApi('POST', '/api/config/dashboard-key', { key });
+    if (r.ok) {
+        DASH_KEY = key;
+        localStorage.setItem('bday_dash_key', key);
+        showMsg('dash-key-msg', '✓ Clave actualizada', 'ok');
+    } else {
+        showMsg('dash-key-msg', '✗ Error al guardar', 'err');
+    }
+});
+
+// ─── Correr cron manualmente ──────────────────────────────────────────────────
+document.getElementById('btn-run-cron').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-run-cron');
+    btn.textContent = '⏳ Revisando...';
+    btn.disabled = true;
+
+    const r = await dashApi('POST', '/api/cron/check');
+    const result = document.getElementById('cron-result');
+
+    if (r.ok) {
+        const d = r.data;
+        let html = `<div class="msg msg-ok">`;
+        html += `✓ Revisión completada — ${d.date}<br>`;
+        if (d.birthdayUsers?.length) {
+            html += `🎂 Cumpleaños hoy: ${d.birthdayUsers.join(', ')}<br>`;
+        } else {
+            html += `Sin cumpleaños hoy — rewards desactivados<br>`;
+        }
+        if (d.rewardActions?.length) {
+            html += d.rewardActions.map(a =>
+                `${a.ok ? '✓' : '✗'} Reward ${a.rewardId.slice(0,8)}... → ${a.action}`
+            ).join('<br>');
+        }
+        html += `</div>`;
+        result.innerHTML = html;
+    } else {
+        result.innerHTML = `<div class="msg msg-err">✗ Error: ${r.data?.error}</div>`;
+    }
+
+    btn.textContent = '▶ Revisar ahora';
+    btn.disabled = false;
+
+    // Recargar datos
+    const newData = await dashApi('GET', '/api/dashboard');
+    if (newData.ok) loadDashboard(newData.data);
+});
+</script>
+</body>
+</html>
