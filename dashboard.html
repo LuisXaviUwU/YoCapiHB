@@ -3,336 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard — yocapi_pr Cumpleaños</title>
+    <title>Dashboard — yocapi_pr</title>
+    <meta name="description" content="Panel de administración del sistema de cumpleaños de yocapi_pr.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <style>
-        .dash-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            width: 100%;
-            max-width: 820px;
-            margin-top: 8px;
-        }
-        @media (max-width: 620px) { .dash-grid { grid-template-columns: 1fr; } }
-
-        .dash-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 24px;
-            backdrop-filter: blur(20px);
-        }
-        .dash-card-full { grid-column: 1 / -1; }
-
-        .dash-title {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1rem;
-            letter-spacing: 0.1em;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            margin-bottom: 16px;
-        }
-        .dash-big-num {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 3.5rem;
-            color: var(--text-hi);
-            line-height: 1;
-        }
-        .dash-big-label {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            margin-top: 4px;
-        }
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 6px;
-        }
-        .dot-green { background: var(--success); box-shadow: 0 0 6px var(--success); }
-        .dot-red   { background: var(--danger);  box-shadow: 0 0 6px var(--danger); }
-        .dot-gray  { background: var(--text-dim); }
-
-        .upcoming-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .upcoming-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 14px;
-            background: var(--bg-panel);
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-        }
-        .upcoming-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: var(--border);
-            flex-shrink: 0;
-        }
-        .upcoming-name {
-            font-weight: 600;
-            color: var(--text-hi);
-            font-size: 0.9rem;
-        }
-        .upcoming-date {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-        }
-        .upcoming-badge {
-            margin-left: auto;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 0.72rem;
-            font-weight: 600;
-            background: rgba(145,70,255,0.15);
-            color: var(--purple-lt);
-            border: 1px solid var(--border);
-            white-space: nowrap;
-        }
-        .upcoming-badge.today {
-            background: rgba(61,220,132,0.15);
-            color: var(--success);
-            border-color: rgba(61,220,132,0.3);
-        }
-
-        .reward-input-row {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-        }
-        .reward-input {
-            flex: 1;
-            padding: 10px 14px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text-hi);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.85rem;
-            outline: none;
-        }
-        .reward-input:focus { border-color: var(--purple-lt); }
-        .reward-input::placeholder { color: var(--text-dim); }
-
-        .reward-add-btn {
-            padding: 10px 16px;
-            background: var(--purple);
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: background 0.2s;
-        }
-        .reward-add-btn:hover { background: #a970ff; }
-
-        .reward-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
-        }
-        .reward-tag {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 12px;
-            background: rgba(145,70,255,0.1);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            font-size: 0.78rem;
-            color: var(--purple-lt);
-            font-family: monospace;
-        }
-        .reward-tag button {
-            background: none;
-            border: none;
-            color: var(--text-dim);
-            cursor: pointer;
-            font-size: 0.75rem;
-            padding: 0 2px;
-        }
-        .reward-tag button:hover { color: var(--danger); }
-
-        .config-section { margin-top: 20px; }
-        .config-label {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--text-dim);
-            margin-bottom: 6px;
-        }
-        .config-input {
-            width: 100%;
-            padding: 10px 14px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text-hi);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.9rem;
-            outline: none;
-        }
-        .config-input:focus { border-color: var(--purple-lt); }
-
-        .dash-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: var(--purple);
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 600;
-            font-size: 0.88rem;
-            margin-top: 12px;
-            transition: background 0.2s, transform 0.15s;
-        }
-        .dash-btn:hover { background: #a970ff; transform: translateY(-1px); }
-        .dash-btn.btn-green {
-            background: rgba(61,220,132,0.15);
-            color: var(--success);
-            border: 1px solid rgba(61,220,132,0.3);
-        }
-        .dash-btn.btn-green:hover { background: rgba(61,220,132,0.25); }
-
-        .login-blocker {
-            width: 100%;
-            max-width: 480px;
-            text-align: center;
-        }
-        .dash-header {
-            width: 100%;
-            max-width: 820px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-        }
-        .dash-header h1 {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1.8rem;
-            letter-spacing: 0.05em;
-            color: var(--text-hi);
-        }
-        .msg {
-            padding: 10px 14px;
-            border-radius: var(--radius-sm);
-            font-size: 0.85rem;
-            margin-top: 10px;
-        }
-        .msg-ok   { background: rgba(61,220,132,0.1);  color: var(--success); border: 1px solid rgba(61,220,132,0.25); }
-        .msg-err  { background: rgba(255,92,92,0.1);   color: var(--danger);  border: 1px solid rgba(255,92,92,0.25); }
-        .empty-state { color: var(--text-dim); font-size: 0.9rem; text-align: center; padding: 20px 0; }
-    </style>
 </head>
 <body>
 
-<div class="bg-layer">
-    <div class="bg-orb orb-1"></div>
-    <div class="bg-orb orb-2"></div>
-    <div class="noise"></div>
-</div>
+<div class="bg-dynamic"></div>
+<div class="stars" id="stars-canvas"></div>
 
-<main class="main">
+<main class="dash-main">
 
-    <header class="header" style="max-width:820px;">
-        <div class="header-logo">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="#bf94ff">
-                <path d="M2.149 0l-1.612 4.819v16.696h5.731v2.485h2.979l2.483-2.485h3.724l4.967-4.966v-16.549h-18.272zm16.164 14.861l-2.978 2.977h-4.967l-2.483 2.485v-2.485h-4.473v-13.08h14.901v10.103zm-2.978-7.443v5.966h-2.23v-5.966h2.23zm-5.954 0v5.966h-2.23v-5.966h2.23z" fill-rule="evenodd"/>
-            </svg>
-            <span>Dashboard — Cumpleaños</span>
+    <!-- Top Bar -->
+    <header class="dash-topbar">
+        <div class="dash-brand">
+            <div class="dash-brand-logos">
+                <img src="img/yocapi.png" alt="yocapi_pr" class="dash-logo-main">
+                <img src="img/twitch.png"  alt="Twitch"    class="dash-logo-twitch">
+            </div>
+            <div class="dash-brand-text">
+                <span class="dash-brand-name">yocapi_pr</span>
+                <span class="dash-brand-sub">Dashboard</span>
+            </div>
         </div>
-        <a href="index.html" class="btn-secondary" style="width:auto; padding:8px 16px; font-size:0.82rem; margin:0;">← Página pública</a>
+        <div class="dash-topbar-right">
+            <a href="index.html" class="dash-back-btn">← Página pública</a>
+        </div>
     </header>
 
-    <!-- LOGIN PANEL -->
+    <!-- ══════════════════ LOGIN PANEL ══════════════════ -->
     <div id="panel-login" class="login-blocker">
-        <div class="card">
-            <div class="card-glow"></div>
-            <h2 class="card-title" style="font-size:2rem;">Panel de<br><em>yocapi_pr</em></h2>
-            <p class="card-desc">Ingresa tu clave de acceso para ver el dashboard.</p>
-            <label class="config-label">Clave de acceso</label>
-            <input type="password" id="dash-key-input" class="config-input" placeholder="Tu clave del dashboard">
-            <button id="btn-dash-login" class="btn-primary" style="margin-top:14px;">Entrar</button>
+        <div class="card card-center">
+            <div style="position:relative; width:80px; height:80px;">
+                <img src="img/yocapi.png" alt="yocapi_pr"
+                     style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2.5px solid var(--border-hi);position:relative;z-index:1;">
+                <div style="position:absolute;inset:-3px;border-radius:50%;background:linear-gradient(135deg,var(--twitch),var(--twitch-lt),var(--yocapi));z-index:0;animation:ring-spin 4s linear infinite;"></div>
+            </div>
+            <h2 class="card-title" style="font-size:1.9rem; margin-bottom:4px;">Panel de<br><em>yocapi_pr</em></h2>
+            <p class="card-desc" style="margin-bottom:16px;">Ingresa tu clave de acceso para ver el dashboard.</p>
+            <div style="width:100%;">
+                <label class="config-label">Clave de acceso</label>
+                <input type="password" id="dash-key-input" class="config-input" placeholder="Tu clave del dashboard">
+            </div>
+            <button id="btn-dash-login" class="dash-btn" style="margin-top:14px; width:100%; justify-content:center;">Entrar al Dashboard →</button>
             <div id="login-msg"></div>
         </div>
     </div>
 
-    <!-- DASHBOARD PANEL -->
-    <div id="panel-dash" style="display:none; width:100%; display:none; flex-direction:column; align-items:center;">
+    <!-- ══════════════════ DASHBOARD PANEL ══════════════════ -->
+    <div id="panel-dash" style="display:none; width:100%; flex-direction:column; align-items:center;">
 
+        <!-- Section Header -->
         <div class="dash-header">
             <h1>🎂 Dashboard</h1>
-            <button id="btn-run-cron" class="dash-btn btn-green">▶ Revisar ahora</button>
+            <button id="btn-run-cron" class="dash-btn btn-green" style="margin-top:0;">▶ Revisar ahora</button>
         </div>
 
+        <!-- Grid -->
         <div class="dash-grid">
 
-            <!-- Stats -->
+            <!-- ── Stat: Total Registrados ── -->
             <div class="dash-card">
-                <p class="dash-title">Total registrados</p>
-                <div class="dash-big-num" id="stat-total">—</div>
-                <div class="dash-big-label">seguidores con cumpleaños</div>
+                <div class="dash-card-title">
+                    <span class="dash-card-title-icon">👥</span>
+                    Total registrados
+                </div>
+                <div class="stat-number" id="stat-total">—</div>
+                <div class="stat-label">seguidores con cumpleaños</div>
             </div>
 
-            <!-- Estado del sistema -->
+            <!-- ── Estado del Sistema ── -->
             <div class="dash-card">
-                <p class="dash-title">Estado del sistema</p>
-                <div id="sys-status" style="display:flex; flex-direction:column; gap:10px; font-size:0.88rem;">
-                    <div><span class="status-dot dot-gray" id="dot-streamer"></span><span id="label-streamer">Cargando...</span></div>
-                    <div><span class="status-dot dot-gray" id="dot-rewards"></span><span id="label-rewards">Cargando...</span></div>
-                    <div style="margin-top:8px;">
-                        <a id="link-streamer-auth" href="#" class="dash-btn" style="display:none; text-decoration:none; margin-top:0;">
-                            Autenticar cuenta de Twitch
+                <div class="dash-card-title">
+                    <span class="dash-card-title-icon">⚙️</span>
+                    Estado del sistema
+                </div>
+                <div id="sys-status">
+                    <div>
+                        <span class="status-dot dot-gray" id="dot-streamer"></span>
+                        <span id="label-streamer">Cargando...</span>
+                    </div>
+                    <div>
+                        <span class="status-dot dot-gray" id="dot-rewards"></span>
+                        <span id="label-rewards">Cargando...</span>
+                    </div>
+                    <div>
+                        <a id="link-streamer-auth" href="#" class="dash-btn"
+                           style="display:none; text-decoration:none; margin-top:4px; font-size:0.82rem;">
+                            🔗 Autenticar Twitch
                         </a>
                     </div>
                 </div>
             </div>
 
-            <!-- Cumpleaños próximos -->
+            <!-- ── Próximos cumpleaños ── -->
             <div class="dash-card dash-card-full">
-                <p class="dash-title">Próximos 7 días</p>
+                <div class="dash-card-title">
+                    <span class="dash-card-title-icon">🎂</span>
+                    Próximos 7 días
+                </div>
                 <div id="upcoming-list" class="upcoming-list">
                     <div class="empty-state">Cargando...</div>
                 </div>
             </div>
 
-            <!-- Configurar reward IDs -->
+            <!-- ── Reward IDs ── -->
             <div class="dash-card dash-card-full">
-                <p class="dash-title">IDs de recompensas a activar</p>
-                <p style="font-size:0.82rem; color:var(--text-dim); margin-bottom:14px; line-height:1.6;">
-                    Pega aquí los IDs de los Channel Point Rewards de Twitch que se activarán
-                    el día del cumpleaños (silbato, música, voz, etc.).<br>
-                    Los IDs se consiguen desde la API de Twitch o con un script simple.
+                <div class="dash-card-title">
+                    <span class="dash-card-title-icon">🎁</span>
+                    IDs de recompensas a activar
+                </div>
+                <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:4px;">
+                    Pega aquí los IDs de Channel Point Rewards de Twitch que se activarán
+                    el día del cumpleaños. Los IDs se obtienen desde la API de Twitch.
                 </p>
                 <div class="reward-input-row">
                     <input type="text" id="reward-id-input" class="reward-input" placeholder="Pega el ID del reward aquí">
                     <button id="reward-add-btn" class="reward-add-btn">+</button>
                 </div>
                 <div id="reward-tags" class="reward-tags"></div>
-                <button id="btn-save-rewards" class="dash-btn" style="margin-top:16px;">Guardar IDs</button>
-                <div id="rewards-msg"></div>
+                <button id="btn-save-rewards" class="dash-btn" style="margin-top:14px;">💾 Guardar IDs</button>
+                <div id="rewards-msg" class="msg"></div>
             </div>
 
-            <!-- Configuración del sistema -->
+            <!-- ── Configuración ── -->
             <div class="dash-card dash-card-full">
-                <p class="dash-title">Configuración inicial</p>
+                <div class="dash-card-title">
+                    <span class="dash-card-title-icon">🔧</span>
+                    Configuración inicial
+                </div>
 
                 <div class="config-section">
                     <label class="config-label">Twitch Client ID</label>
@@ -343,9 +144,9 @@
                     <input type="password" id="cfg-client-secret" class="config-input" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
                 </div>
                 <div class="config-section">
-                    <label class="config-label">URL del backend (tu dominio ngrok)</label>
+                    <label class="config-label">URL del backend (ngrok)</label>
                     <input type="text" id="cfg-backend-url" class="config-input" placeholder="https://abc-123.ngrok-free.app">
-                    <small style="color:var(--text-dim); font-size:0.75rem; margin-top:4px; display:block;">
+                    <small style="color:var(--text-dim); font-size:0.74rem; margin-top:5px; display:block; line-height:1.5;">
                         Esta URL se usa como redirect de Twitch — debe coincidir con la registrada en dev.twitch.tv
                     </small>
                 </div>
@@ -353,23 +154,47 @@
                     <label class="config-label">URL del frontend (GitHub Pages)</label>
                     <input type="text" id="cfg-frontend-url" class="config-input" placeholder="https://tu-usuario.github.io/birthday">
                 </div>
-                <button id="btn-save-config" class="dash-btn">Guardar configuración</button>
-                <div id="config-msg"></div>
+                <button id="btn-save-config" class="dash-btn">💾 Guardar configuración</button>
+                <div id="config-msg" class="msg"></div>
 
-                <div class="config-section" style="margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
+                <hr class="dash-divider" style="margin-top:24px;">
+
+                <div class="config-section">
                     <label class="config-label">Clave del dashboard (mínimo 8 caracteres)</label>
-                    <input type="password" id="cfg-dash-key" class="config-input" placeholder="Clave secreta para este panel">
-                    <button id="btn-save-dash-key" class="dash-btn" style="margin-top:10px;">Cambiar clave</button>
-                    <div id="dash-key-msg"></div>
+                    <input type="password" id="cfg-dash-key" class="config-input" placeholder="Nueva clave secreta">
+                    <button id="btn-save-dash-key" class="dash-btn" style="margin-top:10px;">🔑 Cambiar clave</button>
+                    <div id="dash-key-msg" class="msg"></div>
                 </div>
             </div>
 
-        </div>
-    </div>
+        </div><!-- /dash-grid -->
+    </div><!-- /panel-dash -->
 
-    <div id="cron-result" style="width:100%; max-width:820px; margin-top:12px;"></div>
+    <div id="cron-result"></div>
 
 </main>
+
+<!-- Stars -->
+<script>
+(function() {
+    const canvas = document.getElementById('stars-canvas');
+    for (let i = 0; i < 50; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        const size = Math.random() * 2 + 0.5;
+        const dur  = (Math.random() * 4 + 2).toFixed(1);
+        const del  = (Math.random() * 5).toFixed(1);
+        const op   = (Math.random() * 0.35 + 0.1).toFixed(2);
+        s.style.cssText = `
+            width:${size}px; height:${size}px;
+            top:${Math.random()*100}%;
+            left:${Math.random()*100}%;
+            --dur:${dur}s; --delay:${del}s; --max-op:${op};
+        `;
+        canvas.appendChild(s);
+    }
+})();
+</script>
 
 <script src="config.js"></script>
 <script>
@@ -412,11 +237,11 @@ document.getElementById('btn-dash-login').addEventListener('click', async () => 
     if (r.ok) {
         localStorage.setItem('bday_dash_key', key);
         document.getElementById('panel-login').style.display = 'none';
-        document.getElementById('panel-dash').style.display = 'flex';
+        const pd = document.getElementById('panel-dash');
+        pd.style.display = 'flex';
         loadDashboard(r.data);
     } else {
-        document.getElementById('login-msg').className = 'msg msg-err';
-        document.getElementById('login-msg').textContent = 'Clave incorrecta o servidor apagado.';
+        showMsg('login-msg', 'Clave incorrecta o servidor apagado.', 'err');
         document.getElementById('login-msg').style.display = 'block';
     }
 });
@@ -429,7 +254,8 @@ if (DASH_KEY) {
     dashApi('GET', '/api/dashboard').then(r => {
         if (r.ok) {
             document.getElementById('panel-login').style.display = 'none';
-            document.getElementById('panel-dash').style.display = 'flex';
+            const pd = document.getElementById('panel-dash');
+            pd.style.display = 'flex';
             loadDashboard(r.data);
         } else {
             localStorage.removeItem('bday_dash_key');
@@ -442,10 +268,8 @@ if (DASH_KEY) {
 function loadDashboard(data) {
     dashData = data;
 
-    // Stats
     document.getElementById('stat-total').textContent = data.total || 0;
 
-    // Estado del sistema
     const streamerOk = data.streamerAuth;
     const rewardsOk  = data.rewardIds?.length > 0;
 
@@ -467,11 +291,8 @@ function loadDashboard(data) {
         linkAuth.style.display = 'none';
     }
 
-    // Rewards
     rewardIds = [...(data.rewardIds || [])];
     renderRewardTags();
-
-    // Upcoming
     renderUpcoming(data.upcoming || []);
 }
 
@@ -487,11 +308,11 @@ function renderUpcoming(upcoming) {
         for (const user of day.users) {
             const item = document.createElement('div');
             item.className = 'upcoming-item';
-            const isToday = day.daysFromNow === 0;
+            const isToday    = day.daysFromNow === 0;
             const isTomorrow = day.daysFromNow === 1;
             const label = isToday ? '🎂 Hoy' : isTomorrow ? 'Mañana' : `En ${day.daysFromNow} días`;
             item.innerHTML = `
-                <div class="upcoming-avatar" style="background:var(--border); display:flex; align-items:center; justify-content:center; color:var(--text-dim); font-weight:700; font-size:0.9rem;">
+                <div class="upcoming-avatar">
                     ${user.display_name[0].toUpperCase()}
                 </div>
                 <div>
@@ -584,7 +405,7 @@ document.getElementById('btn-run-cron').addEventListener('click', async () => {
 
     if (r.ok) {
         const d = r.data;
-        let html = `<div class="msg msg-ok">`;
+        let html = `<div class="msg msg-ok" style="display:block;">`;
         html += `✓ Revisión completada — ${d.date}<br>`;
         if (d.birthdayUsers?.length) {
             html += `🎂 Cumpleaños hoy: ${d.birthdayUsers.join(', ')}<br>`;
@@ -599,13 +420,12 @@ document.getElementById('btn-run-cron').addEventListener('click', async () => {
         html += `</div>`;
         result.innerHTML = html;
     } else {
-        result.innerHTML = `<div class="msg msg-err">✗ Error: ${r.data?.error}</div>`;
+        result.innerHTML = `<div class="msg msg-err" style="display:block;">✗ Error: ${r.data?.error}</div>`;
     }
 
     btn.textContent = '▶ Revisar ahora';
     btn.disabled = false;
 
-    // Recargar datos
     const newData = await dashApi('GET', '/api/dashboard');
     if (newData.ok) loadDashboard(newData.data);
 });

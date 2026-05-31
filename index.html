@@ -1,193 +1,230 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cumpleaños — yocapi_pr</title>
+    <meta name="description"
+        content="Registra tu cumpleaños en el canal de yocapi_pr en Twitch y obtén recompensas especiales el día de tu cumpleaños.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Bebas+Neue&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<!-- Fondo animado -->
-<div class="bg-layer">
-    <div class="bg-orb orb-1"></div>
-    <div class="bg-orb orb-2"></div>
-    <div class="bg-orb orb-3"></div>
-    <div class="noise"></div>
-</div>
+    <!-- Fondo animado -->
+    <div class="bg-dynamic"></div>
+    <div class="stars" id="stars-canvas"></div>
 
-<main class="main">
+    <main class="main">
 
-    <!-- Header -->
-    <header class="header">
-        <div class="header-logo">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="#bf94ff">
-                <path d="M2.149 0l-1.612 4.819v16.696h5.731v2.485h2.979l2.483-2.485h3.724l4.967-4.966v-16.549h-18.272zm16.164 14.861l-2.978 2.977h-4.967l-2.483 2.485v-2.485h-4.473v-13.08h14.901v10.103zm-2.978-7.443v5.966h-2.23v-5.966h2.23zm-5.954 0v5.966h-2.23v-5.966h2.23z" fill-rule="evenodd"/>
-            </svg>
-            <span>yocapi_pr</span>
-        </div>
-        <div id="user-pill" class="user-pill" style="display:none;">
-            <img id="user-avatar" src="" alt="" class="user-avatar-sm">
-            <span id="user-name"></span>
-            <button id="btn-logout" class="logout-btn" title="Cerrar sesión">✕</button>
-        </div>
-    </header>
+        <!-- Header -->
+        <header class="index-header">
 
-    <!-- ESTADO: cargando -->
-    <section id="state-loading" class="card card-center" style="display:none;">
-        <div class="spinner"></div>
-        <p class="loading-text">Verificando...</p>
-    </section>
-
-    <!-- ESTADO: no conectado -->
-    <section id="state-login" class="card" style="display:none;">
-        <div class="card-glow"></div>
-        <div class="cake-icon">🎂</div>
-        <h1 class="card-title">Registra tu<br><em>cumpleaños</em></h1>
-        <p class="card-desc">
-            El día que cumplas años se activarán recompensas especiales
-            exclusivamente para ti en el canal de yocapi_pr.
-        </p>
-
-        <div class="steps-row">
-            <div class="step">
-                <div class="step-num">1</div>
-                <span>Inicia sesión<br>con Twitch</span>
+            <div id="user-pill" class="user-pill" style="display:none;">
+                <img id="user-avatar" src="" alt="" class="user-avatar-sm">
+                <span id="user-name"></span>
+                <button id="btn-logout" class="logout-btn" title="Cerrar sesión">✕</button>
             </div>
-            <div class="step-line"></div>
-            <div class="step">
-                <div class="step-num">2</div>
-                <span>Confirma que<br>sigues el canal</span>
+        </header>
+
+        <!-- HERO (visible cuando la sección de login está activa) -->
+        <div id="hero-section" class="hero" style="display:none;">
+            <div class="hero-logos">
+                <img src="img/yocapi.png" alt="yocapi_pr" class="hero-logo-main">
+                <img src="img/twitch.png" alt="Twitch" class="hero-logo-twitch">
             </div>
-            <div class="step-line"></div>
-            <div class="step">
-                <div class="step-num">3</div>
-                <span>Registra tu<br>cumpleaños</span>
+
+            <div class="hero-badge">
+                <span class="hero-badge-dot"></span>
+                Canal en Twitch
             </div>
+
+            <h1 class="hero-title">
+                Registra tu<br>
+                <span class="accent">Cumpleaños</span>
+            </h1>
+
+            <p class="hero-desc">
+                El día que cumplas años se activarán recompensas especiales
+                exclusivamente para ti en el canal de <strong style="color:var(--yocapi-lt);">yocapi_pr</strong>.
+            </p>
         </div>
 
-        <button id="btn-login" class="btn-twitch">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M2.149 0l-1.612 4.819v16.696h5.731v2.485h2.979l2.483-2.485h3.724l4.967-4.966v-16.549h-18.272zm16.164 14.861l-2.978 2.977h-4.967l-2.483 2.485v-2.485h-4.473v-13.08h14.901v10.103zm-2.978-7.443v5.966h-2.23v-5.966h2.23zm-5.954 0v5.966h-2.23v-5.966h2.23z" fill-rule="evenodd"/>
-            </svg>
-            Entrar con Twitch
-        </button>
+        <!-- ESTADO: cargando -->
+        <section id="state-loading" class="card card-center" style="display:none;">
+            <div class="spinner"></div>
+            <p class="loading-text">Verificando...</p>
+        </section>
 
-        <p class="privacy-note">Solo se guarda tu ID de Twitch y fecha de cumpleaños. Sin acceso a tu cuenta.</p>
-    </section>
+        <!-- ESTADO: no conectado -->
+        <section id="state-login" class="card" style="display:none;">
 
-    <!-- ESTADO: no es seguidor -->
-    <section id="state-not-follower" class="card card-center" style="display:none;">
-        <div class="error-icon">😔</div>
-        <h2 class="card-title" style="font-size:2rem;">Necesitas seguir<br>el canal</h2>
-        <p class="card-desc">
-            Para registrar tu cumpleaños primero debes seguir a
-            <strong>yocapi_pr</strong> en Twitch.
-        </p>
-        <a href="https://twitch.tv/yocapi_pr" target="_blank" class="btn-twitch">
-            Ir al canal de yocapi_pr
-        </a>
-        <button id="btn-retry" class="btn-secondary" style="margin-top:12px;">Ya la sigo, intentar de nuevo</button>
-    </section>
-
-    <!-- ESTADO: registrar cumpleaños -->
-    <section id="state-register" class="card" style="display:none;">
-        <div class="card-glow"></div>
-        <div id="register-avatar-wrap" class="register-avatar-wrap">
-            <img id="register-avatar" src="" alt="" class="register-avatar">
-            <div class="register-avatar-ring"></div>
-        </div>
-        <h2 class="card-title">Hola, <em id="register-username"></em> 👋</h2>
-        <p class="card-desc">¿Cuándo es tu cumpleaños? Solo necesitamos el día y el mes.</p>
-
-        <div class="date-picker">
-            <div class="date-field">
-                <label class="date-label">Día</label>
-                <select id="pick-day" class="date-select">
-                    <option value="">—</option>
-                </select>
+            <div class="steps-row">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <span>Inicia sesión<br>con Twitch</span>
+                </div>
+                <div class="step-line"></div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <span>Confirma que<br>sigues el canal</span>
+                </div>
+                <div class="step-line"></div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <span>Registra tu<br>cumpleaños</span>
+                </div>
             </div>
-            <div class="date-sep">de</div>
-            <div class="date-field">
-                <label class="date-label">Mes</label>
-                <select id="pick-month" class="date-select">
-                    <option value="">—</option>
-                    <option value="1">Enero</option>
-                    <option value="2">Febrero</option>
-                    <option value="3">Marzo</option>
-                    <option value="4">Abril</option>
-                    <option value="5">Mayo</option>
-                    <option value="6">Junio</option>
-                    <option value="7">Julio</option>
-                    <option value="8">Agosto</option>
-                    <option value="9">Septiembre</option>
-                    <option value="10">Octubre</option>
-                    <option value="11">Noviembre</option>
-                    <option value="12">Diciembre</option>
-                </select>
+
+            <button id="btn-login" class="btn-twitch">
+                <img src="img/twitch.png" alt="Twitch">
+                Entrar con Twitch
+            </button>
+
+            <p class="privacy-note">🔒 Solo se guarda tu ID de Twitch y fecha de cumpleaños. Sin acceso a tu cuenta.</p>
+        </section>
+
+        <!-- ESTADO: no es seguidor -->
+        <section id="state-not-follower" class="card card-center" style="display:none;">
+            <div class="error-icon">😔</div>
+            <h2 class="card-title" style="font-size:1.9rem;">Necesitas seguir<br>el canal</h2>
+            <p class="card-desc">
+                Para registrar tu cumpleaños primero debes seguir a
+                <strong style="color:var(--yocapi-lt);">yocapi_pr</strong> en Twitch.
+            </p>
+            <a href="https://twitch.tv/yocapi_pr" target="_blank" class="btn-twitch">
+                <img src="img/twitch.png" alt="Twitch">
+                Ir al canal de yocapi_pr
+            </a>
+            <button id="btn-retry" class="btn-secondary" style="margin-top:10px;">✓ Ya la sigo, intentar de
+                nuevo</button>
+        </section>
+
+        <!-- ESTADO: registrar cumpleaños -->
+        <section id="state-register" class="card" style="display:none;">
+            <div id="register-avatar-wrap" class="register-avatar-wrap">
+                <div class="register-avatar-ring"></div>
+                <img id="register-avatar" src="" alt="" class="register-avatar">
             </div>
-        </div>
+            <h2 class="card-title">Hola, <em id="register-username"></em> 👋</h2>
+            <p class="card-desc">¿Cuándo es tu cumpleaños? Solo necesitamos el día y el mes.</p>
 
-        <button id="btn-register" class="btn-primary" disabled>
-            Registrar cumpleaños 🎉
-        </button>
-        <p class="privacy-note">Solo se guarda el día y mes, nunca el año.</p>
-    </section>
-
-    <!-- ESTADO: ya registrado -->
-    <section id="state-registered" class="card" style="display:none;">
-        <div class="card-glow card-glow-success"></div>
-        <div class="success-icon">🎉</div>
-        <h2 class="card-title">¡Registrado!</h2>
-        <p class="card-desc">
-            El día <strong id="reg-date-display"></strong> se activarán las
-            recompensas especiales de cumpleaños en el canal.
-        </p>
-
-        <div class="reg-info-box">
-            <div class="reg-info-row">
-                <span class="reg-info-label">Cumpleaños</span>
-                <span id="reg-info-date" class="reg-info-value"></span>
+            <div class="date-picker">
+                <div class="date-field">
+                    <label class="date-label">Día</label>
+                    <select id="pick-day" class="date-select">
+                        <option value="">—</option>
+                    </select>
+                </div>
+                <div class="date-sep">de</div>
+                <div class="date-field">
+                    <label class="date-label">Mes</label>
+                    <select id="pick-month" class="date-select">
+                        <option value="">—</option>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
             </div>
-            <div class="reg-info-row">
-                <span class="reg-info-label">Canal</span>
-                <span class="reg-info-value">yocapi_pr</span>
+
+            <button id="btn-register" class="btn-primary" disabled>
+                Registrar cumpleaños 🎉
+            </button>
+            <p class="privacy-note">Solo se guarda el día y mes, nunca el año.</p>
+        </section>
+
+        <!-- ESTADO: ya registrado -->
+        <section id="state-registered" class="card" style="display:none;">
+            <div class="success-icon">🎉</div>
+            <h2 class="card-title">¡Registrado!</h2>
+            <p class="card-desc">
+                El día <strong id="reg-date-display"></strong> se activarán las
+                recompensas especiales de cumpleaños en el canal.
+            </p>
+
+            <div class="reg-info-box">
+                <div class="reg-info-row">
+                    <span class="reg-info-label">Cumpleaños</span>
+                    <span id="reg-info-date" class="reg-info-value"></span>
+                </div>
+                <div class="reg-info-row">
+                    <span class="reg-info-label">Canal</span>
+                    <span class="reg-info-value" style="color:var(--yocapi-lt);">yocapi_pr</span>
+                </div>
             </div>
-        </div>
 
-        <button id="btn-change" class="btn-secondary">Cambiar fecha</button>
-        <button id="btn-delete" class="btn-danger">Eliminar registro</button>
-    </section>
+            <button id="btn-change" class="btn-secondary">Cambiar fecha</button>
+            <button id="btn-delete" class="btn-danger">Eliminar registro</button>
+        </section>
 
-    <!-- ESTADO: error genérico -->
-    <section id="state-error" class="card card-center" style="display:none;">
-        <div class="error-icon">⚠️</div>
-        <h2 class="card-title" style="font-size:2rem;">Algo salió mal</h2>
-        <p id="error-msg" class="card-desc">Error desconocido.</p>
-        <button id="btn-error-back" class="btn-secondary">Volver a intentar</button>
-    </section>
+        <!-- ESTADO: error genérico -->
+        <section id="state-error" class="card card-center" style="display:none;">
+            <div class="error-icon">⚠️</div>
+            <h2 class="card-title" style="font-size:1.9rem;">Algo salió mal</h2>
+            <p id="error-msg" class="card-desc">Error desconocido.</p>
+            <button id="btn-error-back" class="btn-secondary">Volver a intentar</button>
+        </section>
 
-    <!-- ESTADO: servidor apagado -->
-    <section id="state-offline" class="card card-center" style="display:none;">
-        <div class="error-icon">🔌</div>
-        <h2 class="card-title" style="font-size:1.8rem;">Sistema apagado</h2>
-        <p class="card-desc">
-            El servidor está temporalmente apagado.<br>
-            Intenta de nuevo más tarde.
-        </p>
-        <button id="btn-offline-retry" class="btn-secondary">Reintentar</button>
-    </section>
+        <!-- ESTADO: servidor apagado -->
+        <section id="state-offline" class="card card-center" style="display:none;">
+            <div class="error-icon">🔌</div>
+            <h2 class="card-title" style="font-size:1.8rem;">Sistema apagado</h2>
+            <p class="card-desc">
+                El servidor está temporalmente apagado.<br>
+                Intenta de nuevo más tarde.
+            </p>
+            <button id="btn-offline-retry" class="btn-secondary">Reintentar</button>
+        </section>
 
-    <footer class="footer">
-        <span>Sistema de cumpleaños · yocapi_pr</span>
-        <span id="footer-count"></span>
-    </footer>
+        <footer class="footer">
+            <span>Sistema de cumpleaños</span>
+            <span class="footer-dot"></span>
+            <span style="color:var(--yocapi-lt); font-weight:600;">yocapi_pr</span>
+            <span class="footer-dot"></span>
+            <span id="footer-count"></span>
+        </footer>
 
-</main>
+    </main>
 
-<script src="config.js"></script>
-<script src="app.js"></script>
+    <!-- Stars script -->
+    <script>
+        (function () {
+            const canvas = document.getElementById('stars-canvas');
+            for (let i = 0; i < 70; i++) {
+                const s = document.createElement('div');
+                s.className = 'star';
+                const size = Math.random() * 2.5 + 0.5;
+                const dur = (Math.random() * 4 + 2).toFixed(1);
+                const del = (Math.random() * 5).toFixed(1);
+                const op = (Math.random() * 0.5 + 0.15).toFixed(2);
+                s.style.cssText = `
+            width:${size}px; height:${size}px;
+            top:${Math.random() * 100}%;
+            left:${Math.random() * 100}%;
+            --dur:${dur}s; --delay:${del}s; --max-op:${op};
+        `;
+                canvas.appendChild(s);
+            }
+        })();
+    </script>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
 </body>
+
 </html>

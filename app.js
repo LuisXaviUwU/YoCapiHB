@@ -22,6 +22,10 @@ function showState(id) {
         const el = $(s);
         if (el) el.style.display = (s === id) ? (s === 'state-loading' || s === 'state-not-follower' || s === 'state-error' || s === 'state-offline' ? 'flex' : 'block') : 'none';
     });
+
+    // Show hero section only on the login state
+    const hero = $('hero-section');
+    if (hero) hero.style.display = (id === 'state-login') ? 'block' : 'none';
 }
 
 async function api(method, path, body) {
