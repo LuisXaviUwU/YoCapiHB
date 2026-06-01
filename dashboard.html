@@ -442,9 +442,9 @@
             <div style="position:absolute;inset:-3px;border-radius:50%;background:linear-gradient(135deg,var(--twitch),var(--twitch-lt),var(--yocapi));z-index:0;animation:ring-spin 4s linear infinite;"></div>
         </div>
         <h2 class="card-title" style="font-size:1.9rem; margin-bottom:4px;">Panel de<br><em>yocapi_pr</em></h2>
-        <p class="card-desc" style="margin-bottom:16px;">Ingresa tu clave de acceso para ver el dashboard.</p>
+        <p class="card-desc" id="login-desc" style="margin-bottom:16px;">Ingresa tu clave de acceso para ver el dashboard.</p>
         <div style="width:100%;">
-            <label class="config-label">Clave de acceso</label>
+            <label class="config-label" id="login-key-label">Clave de acceso</label>
             <input type="password" id="dash-key-input" class="config-input" placeholder="Tu clave del dashboard">
         </div>
         <button id="btn-dash-login" class="dash-btn" style="margin-top:14px; width:100%; justify-content:center;">Entrar al Dashboard →</button>
@@ -532,7 +532,7 @@
                         <span class="status-dot dot-gray" id="dot-streamer"></span>
                         <span id="label-streamer">Cargando...</span>
                         <a id="link-streamer-auth" href="#" class="dash-btn" style="display:none; text-decoration:none; margin-left:auto; padding:5px 12px; font-size:0.76rem;">🔗 Autenticar</a>
-                        <button id="btn-streamer-disconnect" class="dash-btn btn-danger" style="display:none; margin-left:auto; padding:5px 12px; font-size:0.76rem;">Desvincular</button>
+                        <button id="btn-streamer-disconnect" class="dash-btn btn-danger" style="display:none; margin-left:auto; flex-shrink:0; padding:5px 14px; font-size:0.76rem;">Desvincular</button>
                     </div>
                     <div class="sys-status-item">
                         <span class="status-dot dot-gray" id="dot-rewards"></span>
@@ -744,32 +744,86 @@ async function attemptLogin(key) {
         document.getElementById('dash-app').style.display = 'flex';
         loadDashboard(r.data);
         loadAllBirthdays();
+        return 'ok';
+    } else if (r.status === 403 && r.data?.error === 'setup_required') {
+        // Primera vez: no hay clave configurada aún
+        return 'setup_required';
     } else {
         DASH_KEY = '';
-        return false;
+        return 'wrong_key';
     }
-    return true;
 }
 
-document.getElementById('btn-dash-login').addEventListener('click', async () => {
+// Modo primera configuración: pide crear una clave
+async function enterSetupMode() {
+    document.getElementById('login-desc').textContent = '⚠️ Primera vez: crea una clave de acceso de al menos 8 caracteres para proteger el dashboard.';
+    document.getElementById('login-key-label').textContent = 'Nueva clave (mínimo 8 caracteres)';
+    document.getElementById('dash-key-input').placeholder = 'Ej: MiClave2024!';
+    document.getElementById('btn-dash-login').textContent = 'Crear clave y entrar →';
+    document.getElementById('btn-dash-login').removeEventListener('click', handleLoginClick);
+    document.getElementById('btn-dash-login').addEventListener('click', handleSetupClick);
+}
+
+async function handleSetupClick() {
     const key = document.getElementById('dash-key-input').value.trim();
-    if (!key) return;
-    const ok = await attemptLogin(key);
-    if (!ok) {
-        showMsg('login-msg', 'Clave incorrecta o servidor apagado.', 'err');
+    if (key.length < 8) {
+        showMsg('login-msg', 'La clave debe tener al menos 8 caracteres.', 'err');
+        document.getElementById('login-msg').style.display = 'block';
+        return;
+    }
+    // Guardar la clave (el endpoint no requiere auth si no hay clave aún)
+    const r = await fetch(BACKEND_URL + '/api/config/dashboard-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+        body: JSON.stringify({ key })
+    });
+    const data = await r.json();
+    if (data.ok) {
+        showMsg('login-msg', '✓ Clave creada. Iniciando sesión...', 'ok');
+        document.getElementById('login-msg').style.display = 'block';
+        setTimeout(() => attemptLogin(key).then(result => {
+            if (result === 'ok') { /* ya se maneja dentro */ }
+        }), 800);
+    } else {
+        showMsg('login-msg', '✗ Error: ' + data.error, 'err');
         document.getElementById('login-msg').style.display = 'block';
     }
-});
+}
+
+async function handleLoginClick() {
+    const key = document.getElementById('dash-key-input').value.trim();
+    if (!key) return;
+    const result = await attemptLogin(key);
+    if (result === 'setup_required') {
+        enterSetupMode();
+    } else if (result === 'wrong_key') {
+        showMsg('login-msg', '✗ Clave incorrecta.', 'err');
+        document.getElementById('login-msg').style.display = 'block';
+    }
+}
+
+document.getElementById('btn-dash-login').addEventListener('click', handleLoginClick);
 
 document.getElementById('dash-key-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('btn-dash-login').click();
 });
 
-// Auto-login
+// Auto-login al cargar si hay clave guardada
 if (DASH_KEY) {
-    attemptLogin(DASH_KEY).then(ok => {
-        if (!ok) { localStorage.removeItem('bday_dash_key'); DASH_KEY = ''; }
+    attemptLogin(DASH_KEY).then(result => {
+        if (result === 'setup_required') {
+            enterSetupMode();
+        } else if (result !== 'ok') {
+            localStorage.removeItem('bday_dash_key');
+            DASH_KEY = '';
+        }
     });
+} else {
+    // Sin clave guardada: verificar si el sistema requiere setup
+    fetch(BACKEND_URL + '/api/dashboard', { headers: { 'ngrok-skip-browser-warning': 'true' } })
+        .then(r => r.json())
+        .then(data => { if (data.error === 'setup_required') enterSetupMode(); })
+        .catch(() => {});
 }
 
 // ─── Load dashboard summary ───────────────────────────────────────────────────
