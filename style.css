@@ -1,10 +1,8 @@
-/* ══════════════════════════════════════════════════════════════
-   YOCAPI_PR — Birthday System · v2 Redesign
-   Theme: Cozy Dark · Glassmorphism · Warm Purple
-   ══════════════════════════════════════════════════════════════ */
-
-/* ── Google Fonts ─────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Bebas+Neue&display=swap');
+/* =========================================================
+   YOCAPI_PR - Birthday System v2 Redesign
+   Theme: Cozy Dark + Glassmorphism + Warm Purple
+   Fonts loaded via HTML link tag (no @import needed)
+   ========================================================= */
 
 /* ── Reset ────────────────────────────────────────────────── */
 *, *::before, *::after {
