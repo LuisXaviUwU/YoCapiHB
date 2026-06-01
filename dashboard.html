@@ -7,7 +7,7 @@
     <meta name="description" content="Panel de administración del sistema de cumpleaños de yocapi_pr.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2">
     <style>
         /* ── Dashboard App Shell ─────────────────────────────── */
         body { overflow: hidden; }
@@ -486,6 +486,7 @@
 
         <div class="dash-sidebar-footer">
             <a href="index.html">← Página pública</a>
+            <a href="#" id="btn-logout-dash" style="color:var(--danger); margin-top:8px;">🚪 Cerrar sesión</a>
         </div>
     </aside>
 
@@ -531,6 +532,7 @@
                         <span class="status-dot dot-gray" id="dot-streamer"></span>
                         <span id="label-streamer">Cargando...</span>
                         <a id="link-streamer-auth" href="#" class="dash-btn" style="display:none; text-decoration:none; margin-left:auto; padding:5px 12px; font-size:0.76rem;">🔗 Autenticar</a>
+                        <button id="btn-streamer-disconnect" class="dash-btn btn-danger" style="display:none; margin-left:auto; padding:5px 12px; font-size:0.76rem;">Desvincular</button>
                     </div>
                     <div class="sys-status-item">
                         <span class="status-dot dot-gray" id="dot-rewards"></span>
@@ -795,15 +797,34 @@ function loadDashboard(data) {
         : '⚠ Sin sonidos de cumpleaños configurados';
 
     const linkAuth = document.getElementById('link-streamer-auth');
+    const btnDisconnect = document.getElementById('btn-streamer-disconnect');
+    
     if (!streamerOk) {
         linkAuth.style.display = 'inline-flex';
+        btnDisconnect.style.display = 'none';
         linkAuth.href = BACKEND_URL + '/auth/twitch/streamer';
     } else {
         linkAuth.style.display = 'none';
+        btnDisconnect.style.display = 'inline-flex';
     }
 
     renderUpcoming(data.upcoming || []);
 }
+
+document.getElementById('btn-streamer-disconnect').addEventListener('click', async () => {
+    if (confirm('¿Seguro que deseas desvincular la cuenta de Twitch actual? Tendrás que volver a iniciar sesión.')) {
+        const r = await dashApi('POST', '/api/auth/disconnect');
+        if (r.ok) {
+            window.location.reload();
+        }
+    }
+});
+
+document.getElementById('btn-logout-dash').addEventListener('click', (e) => {
+    e.preventDefault();
+    localStorage.removeItem('bday_dash_key');
+    window.location.reload();
+});
 
 // ─── All Birthdays (server-side paginated) ────────────────────────────────────
 let totalBdays = 0;
