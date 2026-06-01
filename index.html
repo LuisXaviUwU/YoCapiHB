@@ -41,7 +41,7 @@
         <!-- HERO (visible cuando la sección de login está activa) -->
         <div id="hero-section" class="hero" style="display:none;">
             <div class="hero-logos">
-                <img src="img/yocapi.png" alt="yocapi_pr" class="hero-logo-main" width="110" height="110">
+                <img src="img/HB.png" alt="yocapi_pr" class="hero-logo-main" width="110" height="110">
                 <img src="img/twitch.png" alt="Twitch" class="hero-logo-twitch" width="52" height="52">
             </div>
 
@@ -62,7 +62,7 @@
         </div>
 
         <!-- ESTADO: cargando -->
-        <section id="state-loading" class="card card-center" style="display:none;">
+        <section id="state-loading" class="card card-center" style="display:none; margin: auto 0;">
             <div class="spinner"></div>
             <p class="loading-text">Verificando...</p>
         </section>
@@ -96,8 +96,8 @@
         </section>
 
         <!-- ESTADO: no es seguidor -->
-        <section id="state-not-follower" class="card card-center" style="display:none;">
-            <div class="error-icon">😔</div>
+        <section id="state-not-follower" class="card card-center" style="display:none; margin: auto 0;">
+            <img src="img/puchero.png" alt="No seguidor" width="90" height="90" style="border-radius: 50%; object-fit: cover; border: 3px solid var(--border-hi); margin-bottom: 8px; box-shadow: var(--glow-purple);">
             <h2 class="card-title" style="font-size:1.9rem;">Necesitas seguir<br>el canal</h2>
             <p class="card-desc">
                 Para registrar tu cumpleaños primero debes seguir a
@@ -179,7 +179,7 @@
         </section>
 
         <!-- ESTADO: error genérico -->
-        <section id="state-error" class="card card-center" style="display:none;">
+        <section id="state-error" class="card card-center" style="display:none; margin: auto 0;">
             <div class="error-icon">⚠️</div>
             <h2 class="card-title" style="font-size:1.9rem;">Algo salió mal</h2>
             <p id="error-msg" class="card-desc">Error desconocido.</p>
@@ -187,8 +187,8 @@
         </section>
 
         <!-- ESTADO: servidor apagado -->
-        <section id="state-offline" class="card card-center" style="display:none;">
-            <div class="error-icon">🔌</div>
+        <section id="state-offline" class="card card-center" style="display:none; margin: auto 0;">
+            <img src="img/nosenal.png" alt="Sin Señal" width="90" height="90" style="border-radius: 50%; object-fit: cover; border: 3px solid var(--danger); margin-bottom: 8px; box-shadow: 0 0 30px rgba(255,92,92,0.2);">
             <h2 class="card-title" style="font-size:1.8rem;">Sistema apagado</h2>
             <p class="card-desc">
                 El servidor está temporalmente apagado.<br>
