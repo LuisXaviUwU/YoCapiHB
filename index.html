@@ -174,9 +174,18 @@
                 </div>
             </div>
 
+            <!-- Sounds preview (shown when configured) -->
+            <div id="sounds-preview-section" style="display:none; width:100%; margin: 4px 0 8px;">
+                <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-dim); margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+                    <span>🎵</span> Sonidos de tu cumpleaños
+                </div>
+                <div id="sounds-preview-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+
             <button id="btn-change" class="btn-secondary">Cambiar fecha</button>
             <button id="btn-delete" class="btn-danger">Eliminar registro</button>
         </section>
+
 
         <!-- ESTADO: error genérico -->
         <section id="state-error" class="card card-center" style="display:none; margin: auto 0;">

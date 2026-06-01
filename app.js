@@ -126,7 +126,7 @@ async function init() {
             updateUserPill(me);
 
             if (me.birthday) {
-                showRegistered(me.birthday);
+                showRegistered(me.birthday, me.sounds);
             } else {
                 showRegisterForm(me);
             }
@@ -168,11 +168,86 @@ function showRegisterForm(me) {
     showState('state-register');
 }
 
-function showRegistered(birthday) {
+function showRegistered(birthday, sounds) {
     const dateStr = formatBirthday(birthday.month, birthday.day);
     $('reg-date-display').textContent = dateStr;
     $('reg-info-date').textContent = dateStr;
+    renderSoundsPreview(sounds || []);
     showState('state-registered');
+}
+
+// ─── Sounds Preview ───────────────────────────────────────────────────────────
+let previewAudio = null;
+let previewPlayBtn = null;
+
+function stopPreviewAudio() {
+    if (previewAudio) {
+        previewAudio.pause();
+        previewAudio.currentTime = 0;
+        previewAudio = null;
+    }
+    if (previewPlayBtn) {
+        previewPlayBtn.textContent = '▶';
+        previewPlayBtn.style.background = 'linear-gradient(135deg, var(--twitch), var(--twitch-dk))';
+        previewPlayBtn.style.boxShadow = '0 2px 10px rgba(145,70,255,0.35)';
+        previewPlayBtn.style.animation = 'none';
+        const waveform = previewPlayBtn.closest('.sound-mini-card')?.querySelector('.sound-mini-wave');
+        if (waveform) waveform.classList.remove('active');
+        previewPlayBtn = null;
+    }
+}
+
+function renderSoundsPreview(sounds) {
+    const section = $('sounds-preview-section');
+    const list    = $('sounds-preview-list');
+    if (!sounds || sounds.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+    list.innerHTML = '';
+
+    sounds.forEach(sound => {
+        if (!sound.file) return;
+        const card = document.createElement('div');
+        card.className = 'sound-mini-card';
+        card.innerHTML = `
+            <button class="sound-mini-play" title="Escuchar vista previa">▶</button>
+            <div class="sound-mini-info">
+                <div class="sound-mini-name">${sound.name || sound.file.replace('.mp3','')}</div>
+                <div class="sound-mini-sub">🎵 ${sound.file}</div>
+            </div>
+            <div class="sound-mini-wave">
+                ${[0.5,0.8,1,0.6,0.9,0.5,0.7].map((h,i) =>
+                    `<span style="height:${Math.round(h*14)}px;--d:${(0.5+i*0.1).toFixed(1)}s;--dl:${(i*0.07).toFixed(2)}s"></span>`
+                ).join('')}
+            </div>
+        `;
+
+        const playBtn = card.querySelector('.sound-mini-play');
+        playBtn.addEventListener('click', () => {
+            if (previewPlayBtn === playBtn) {
+                stopPreviewAudio();
+                return;
+            }
+            stopPreviewAudio();
+
+            const audio = new Audio(`music/${sound.file}`);
+            previewAudio = audio;
+            previewPlayBtn = playBtn;
+
+            playBtn.textContent = '⏸';
+            playBtn.style.background = 'linear-gradient(135deg, #3ddc84, #28a865)';
+            playBtn.style.boxShadow = '0 2px 10px rgba(61,220,132,0.4)';
+            playBtn.style.animation = 'sound-pulse 1s ease-in-out infinite';
+            card.querySelector('.sound-mini-wave').classList.add('active');
+
+            audio.play().catch(() => stopPreviewAudio());
+            audio.addEventListener('ended', () => stopPreviewAudio());
+        });
+
+        list.appendChild(card);
+    });
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -219,7 +294,7 @@ $('btn-register').addEventListener('click', async () => {
         // Actualizar la vista de usuario
         const meRes = await api('GET', '/api/me');
         if (meRes.ok) updateUserPill(meRes.data);
-        showRegistered({ month, day });
+        showRegistered({ month, day }, meRes.ok ? meRes.data.sounds : []);
         loadStats();
     } else {
         $('btn-register').disabled = false;

@@ -581,19 +581,24 @@
 
             <!-- ── SECTION: Rewards ── -->
             <section id="section-rewards" class="dash-section">
+
+                <!-- Sonidos de cumpleaños (Rewards) -->
                 <div class="dash-panel">
-                    <div class="dash-panel-title"><span>🎁</span> IDs de recompensas a activar</div>
-                    <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:12px;">
-                        Pega aquí los IDs de Channel Point Rewards que se activarán el día del cumpleaños. Los IDs se obtienen desde la API de Twitch.
+                    <div class="dash-panel-title"><span>🎵</span> Sonidos de cumpleaños</div>
+                    <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:16px;">
+                        Configura los sonidos que se reproducirán en la vista del seguidor registrado. Puedes asignarles un nombre, elegir el audio y opcionalmente vincularlos a un ID de recompensa.
                     </p>
-                    <div class="reward-input-row">
-                        <input type="text" id="reward-id-input" class="reward-input" placeholder="Pega el ID del reward aquí">
-                        <button id="reward-add-btn" class="reward-add-btn">+</button>
-                    </div>
-                    <div id="reward-tags" class="reward-tags"></div>
-                    <button id="btn-save-rewards" class="dash-btn" style="margin-top:14px;">💾 Guardar IDs</button>
-                    <div id="rewards-msg" class="msg"></div>
+
+                    <div id="sound-cards-list" class="sound-cards-list"></div>
+
+                    <button id="sound-add-btn" class="sound-add-btn" style="margin-top:12px;">
+                        <span style="font-size:1.1rem;">＋</span> Agregar sonido
+                    </button>
+
+                    <button id="btn-save-sounds" class="dash-btn" style="margin-top:14px;">🎵 Guardar sonidos</button>
+                    <div id="sounds-msg" class="msg"></div>
                 </div>
+
             </section>
 
             <!-- ── SECTION: Settings ── -->
@@ -665,7 +670,6 @@
 // ─── State ───────────────────────────────────────────────────────────────────
 let DASH_KEY = localStorage.getItem('bday_dash_key') || '';
 let dashData = null;
-let rewardIds = [];
 let allBirthdays = [];
 let filteredBirthdays = [];
 let currentPage = 1;
@@ -778,7 +782,7 @@ function loadDashboard(data) {
     document.getElementById('stat-week').textContent  = weekCount;
 
     const streamerOk = data.streamerAuth;
-    const rewardsOk  = data.rewardIds?.length > 0;
+    const rewardsOk  = data.sounds?.length > 0;
 
     document.getElementById('dot-streamer').className = 'status-dot ' + (streamerOk ? 'dot-green' : 'dot-red');
     document.getElementById('label-streamer').textContent = streamerOk
@@ -787,8 +791,8 @@ function loadDashboard(data) {
 
     document.getElementById('dot-rewards').className = 'status-dot ' + (rewardsOk ? 'dot-green' : 'dot-gray');
     document.getElementById('label-rewards').textContent = rewardsOk
-        ? `✓ ${data.rewardIds.length} reward(s) configurados`
-        : '⚠ Sin reward IDs configurados';
+        ? `✓ ${data.sounds.length} sonido(s) configurado(s)`
+        : '⚠ Sin sonidos de cumpleaños configurados';
 
     const linkAuth = document.getElementById('link-streamer-auth');
     if (!streamerOk) {
@@ -798,8 +802,6 @@ function loadDashboard(data) {
         linkAuth.style.display = 'none';
     }
 
-    rewardIds = [...(data.rewardIds || [])];
-    renderRewardTags();
     renderUpcoming(data.upcoming || []);
 }
 
@@ -939,43 +941,6 @@ function renderUpcoming(upcoming) {
     }
 }
 
-// ─── Reward tags ──────────────────────────────────────────────────────────────
-function renderRewardTags() {
-    const container = document.getElementById('reward-tags');
-    container.innerHTML = '';
-    if (rewardIds.length === 0) {
-        container.innerHTML = '<span style="font-size:0.8rem; color:var(--text-dim);">Sin IDs agregados</span>';
-        return;
-    }
-    rewardIds.forEach((id, i) => {
-        const tag = document.createElement('div');
-        tag.className = 'reward-tag';
-        tag.innerHTML = `${escHtml(id)} <button data-i="${i}" title="Eliminar">✕</button>`;
-        tag.querySelector('button').addEventListener('click', () => {
-            rewardIds.splice(i, 1);
-            renderRewardTags();
-        });
-        container.appendChild(tag);
-    });
-}
-
-document.getElementById('reward-add-btn').addEventListener('click', () => {
-    const input = document.getElementById('reward-id-input');
-    const val = input.value.trim();
-    if (!val) return;
-    if (!rewardIds.includes(val)) rewardIds.push(val);
-    input.value = '';
-    renderRewardTags();
-});
-document.getElementById('reward-id-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('reward-add-btn').click();
-});
-
-document.getElementById('btn-save-rewards').addEventListener('click', async () => {
-    const r = await dashApi('POST', '/api/config/rewards', { reward_ids: rewardIds });
-    showMsg('rewards-msg', r.ok ? '✓ IDs guardados correctamente' : '✗ Error: ' + r.data?.error, r.ok ? 'ok' : 'err');
-});
-
 // ─── Config ───────────────────────────────────────────────────────────────────
 document.getElementById('btn-save-config').addEventListener('click', async () => {
     const client_id     = document.getElementById('cfg-client-id').value.trim();
@@ -1035,6 +1000,216 @@ document.getElementById('btn-run-cron').addEventListener('click', async () => {
     const newData = await dashApi('GET', '/api/dashboard');
     if (newData.ok) loadDashboard(newData.data);
 });
+
+// ─── Sound Cards ──────────────────────────────────────────────────────────────
+
+// Archivos disponibles en music/
+const AVAILABLE_SOUNDS = [
+    { file: 'HBSilbato.mp3',  label: '🎵 HB Silbato',  desc: 'Melodía con silbato' },
+    { file: 'HBVoz.mp3',      label: '🎤 HB Voz',       desc: 'Canto con voz' },
+    { file: 'MBMusica.mp3',   label: '🎶 Música de fondo', desc: 'Música de cumpleaños' },
+];
+
+let soundEntries = []; // [{ name, file, rewardId }]
+let currentAudio = null; // Audio element currently playing
+let currentPlayBtn = null;
+
+function stopCurrentAudio() {
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+    }
+    if (currentPlayBtn) {
+        currentPlayBtn.textContent = '▶';
+        currentPlayBtn.classList.remove('playing');
+        const waveform = currentPlayBtn.closest('.sound-preview-bar')?.querySelector('.sound-waveform');
+        if (waveform) waveform.classList.remove('active');
+        currentPlayBtn = null;
+    }
+}
+
+function createSoundCard(entry, index) {
+    const card = document.createElement('div');
+    card.className = 'sound-card';
+    card.dataset.index = index;
+
+    // Build audio options
+    const audioOptions = AVAILABLE_SOUNDS.map(s =>
+        `<option value="${s.file}" ${entry.file === s.file ? 'selected' : ''}>${s.label}</option>`
+    ).join('');
+
+    card.innerHTML = `
+        <div class="sound-card-header">
+            <span class="sound-card-num">Sonido #${index + 1}</span>
+            <button class="sound-card-remove" data-index="${index}" title="Eliminar">✕ Eliminar</button>
+        </div>
+        <div class="sound-card-fields">
+            <div class="sound-card-field">
+                <label class="sound-field-label">Nombre del sonido</label>
+                <input type="text" class="sound-field-input sound-name"
+                    placeholder="Ej: Happy Birthday Clásico"
+                    value="${escHtml(entry.name || '')}">
+            </div>
+            <div class="sound-card-field">
+                <label class="sound-field-label">Archivo de audio</label>
+                <select class="sound-field-select sound-file">
+                    <option value="">— Elige un audio —</option>
+                    ${audioOptions}
+                </select>
+            </div>
+            <div class="sound-card-field full">
+                <label class="sound-field-label">
+                    ID del reward en Twitch
+                    <span class="sound-optional-badge">Opcional</span>
+                </label>
+                <input type="text" class="sound-field-input sound-reward-id"
+                    placeholder="Puedes dejarlo vacío si aún no tienes el ID"
+                    value="${escHtml(entry.rewardId || '')}">
+            </div>
+        </div>
+        <div class="sound-preview-bar ${entry.file ? '' : 'hidden'}">
+            <button class="sound-play-btn" title="Vista previa">▶</button>
+            <div class="sound-preview-info">
+                <div class="sound-preview-name">${entry.name || (AVAILABLE_SOUNDS.find(s => s.file === entry.file)?.label || '—')}</div>
+                <div class="sound-preview-file">${entry.file || ''}</div>
+            </div>
+            <div class="sound-waveform">
+                ${[0.4,0.7,1,0.6,0.9,0.5,0.8,0.6,1,0.7].map((h,i) =>
+                    `<span style="height:${Math.round(h*18)}px;--d:${(0.6+Math.random()*0.6).toFixed(2)}s;--dl:${(i*0.06).toFixed(2)}s"></span>`
+                ).join('')}
+            </div>
+        </div>
+    `;
+
+    // Remove button
+    card.querySelector('.sound-card-remove').addEventListener('click', () => {
+        stopCurrentAudio();
+        soundEntries.splice(index, 1);
+        renderSoundCards();
+    });
+
+    // Name change → update preview label
+    const nameInput = card.querySelector('.sound-name');
+    nameInput.addEventListener('input', () => {
+        const previewName = card.querySelector('.sound-preview-name');
+        if (previewName) {
+            const sel = card.querySelector('.sound-file').value;
+            previewName.textContent = nameInput.value || (AVAILABLE_SOUNDS.find(s => s.file === sel)?.label || '—');
+        }
+        soundEntries[index].name = nameInput.value;
+    });
+
+    // File change → update preview
+    const fileSelect = card.querySelector('.sound-file');
+    fileSelect.addEventListener('change', () => {
+        stopCurrentAudio();
+        const chosen = fileSelect.value;
+        soundEntries[index].file = chosen;
+        const previewBar = card.querySelector('.sound-preview-bar');
+        const previewFile = card.querySelector('.sound-preview-file');
+        const previewName = card.querySelector('.sound-preview-name');
+        if (chosen) {
+            previewBar.classList.remove('hidden');
+            previewFile.textContent = chosen;
+            const soundMeta = AVAILABLE_SOUNDS.find(s => s.file === chosen);
+            previewName.textContent = nameInput.value || soundMeta?.label || chosen;
+        } else {
+            previewBar.classList.add('hidden');
+        }
+    });
+
+    // Reward ID
+    const rewardInput = card.querySelector('.sound-reward-id');
+    rewardInput.addEventListener('input', () => {
+        soundEntries[index].rewardId = rewardInput.value;
+    });
+
+    // Play button
+    const playBtn = card.querySelector('.sound-play-btn');
+    playBtn.addEventListener('click', () => {
+        const file = card.querySelector('.sound-file').value;
+        if (!file) return;
+
+        if (currentPlayBtn === playBtn) {
+            // Stop if already playing
+            stopCurrentAudio();
+            return;
+        }
+
+        stopCurrentAudio();
+
+        const audio = new Audio(`music/${file}`);
+        currentAudio = audio;
+        currentPlayBtn = playBtn;
+
+        playBtn.textContent = '⏸';
+        playBtn.classList.add('playing');
+        const waveform = card.querySelector('.sound-waveform');
+        waveform.classList.add('active');
+
+        audio.play().catch(() => {
+            stopCurrentAudio();
+        });
+
+        audio.addEventListener('ended', () => {
+            stopCurrentAudio();
+        });
+    });
+
+    return card;
+}
+
+function renderSoundCards() {
+    const list = document.getElementById('sound-cards-list');
+    list.innerHTML = '';
+
+    if (soundEntries.length === 0) {
+        list.innerHTML = `<div style="text-align:center; color:var(--text-dim); font-size:0.82rem; padding:20px 0; border:1px dashed var(--border); border-radius:var(--radius-sm);">
+            Sin sonidos configurados. Haz clic en <strong>Agregar sonido</strong> para comenzar.
+        </div>`;
+        return;
+    }
+
+    soundEntries.forEach((entry, i) => {
+        list.appendChild(createSoundCard(entry, i));
+    });
+}
+
+document.getElementById('sound-add-btn').addEventListener('click', () => {
+    soundEntries.push({ name: '', file: '', rewardId: '' });
+    renderSoundCards();
+    // Scroll to new card
+    const list = document.getElementById('sound-cards-list');
+    list.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+document.getElementById('btn-save-sounds').addEventListener('click', async () => {
+    const r = await dashApi('POST', '/api/config/sounds', { sounds: soundEntries });
+    showMsg('sounds-msg', r.ok ? '✓ Sonidos guardados correctamente' : '✗ Error: ' + r.data?.error, r.ok ? 'ok' : 'err');
+});
+
+async function loadSoundConfig() {
+    const r = await dashApi('GET', '/api/config/sounds');
+    if (r.ok && Array.isArray(r.data.sounds)) {
+        soundEntries = r.data.sounds;
+    } else {
+        soundEntries = [];
+    }
+    renderSoundCards();
+}
+
+// Load sounds when switching to rewards section
+document.querySelectorAll('.dash-nav-item').forEach(item => {
+    if (item.dataset.section === 'rewards') {
+        item.addEventListener('click', () => {
+            loadSoundConfig();
+        });
+    }
+});
+
+// Initial render
+renderSoundCards();
 </script>
 </body>
 </html>
