@@ -1086,6 +1086,34 @@ body {
     border-radius: var(--radius-xs);
 }
 
+/* ── Status row (replaces sys-status-item) ───────────────── */
+.status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    font-size: 0.88rem;
+    margin-bottom: 8px;
+}
+
+.status-row:last-child { margin-bottom: 0; }
+
+.status-row-label {
+    flex: 1;
+    min-width: 0;
+    color: var(--text);
+}
+
+.status-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
 /* ── Upcoming list ────────────────────────────────────────── */
 .upcoming-list {
     display: flex;
