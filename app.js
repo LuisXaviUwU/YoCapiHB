@@ -306,17 +306,28 @@ $('btn-register').addEventListener('click', async () => {
 // ─── Cambiar fecha ────────────────────────────────────────────────────────────
 $('btn-change').addEventListener('click', async () => {
     const meRes = await api('GET', '/api/me');
-    if (meRes.ok) showRegisterForm(meRes.data);
-});
-
-// ─── Eliminar ─────────────────────────────────────────────────────────────────
-$('btn-delete').addEventListener('click', async () => {
-    if (!confirm('¿Eliminar tu registro de cumpleaños?')) return;
-    const r = await api('DELETE', '/api/birthday/me');
-    if (r.ok) {
-        const meRes = await api('GET', '/api/me');
-        if (meRes.ok) showRegisterForm(meRes.data);
-        loadStats();
+    if (meRes.ok) {
+        const me = meRes.data;
+        if (me.birthday) {
+            let changesCount = me.birthday.changes_count || 0;
+            let lastChanged = me.birthday.last_changed_at ? new Date(me.birthday.last_changed_at) : null;
+            
+            if (changesCount >= 1 && lastChanged) {
+                const nextAllowed = new Date(lastChanged);
+                nextAllowed.setMonth(nextAllowed.getMonth() + 6);
+                if (new Date() < nextAllowed) {
+                    alert(`Debes esperar 6 meses desde tu último cambio para volver a modificar tu fecha. Podrás cambiarla a partir del ${nextAllowed.toLocaleDateString()}.`);
+                    return;
+                }
+            }
+            
+            if (changesCount === 0) {
+                if (!confirm('Esta será tu única oportunidad de cambiar la fecha, no podrás volver a hacerlo hasta dentro de 6 meses. ¿Estás seguro de continuar?')) {
+                    return;
+                }
+            }
+        }
+        showRegisterForm(meRes.data);
     }
 });
 
