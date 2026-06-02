@@ -13,6 +13,42 @@ const MONTHS = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
+function customAlert(text) {
+    return new Promise(resolve => {
+        const modal = $('custom-modal');
+        if (!modal) { alert(text); return resolve(); }
+        $('modal-title').textContent = 'Atención';
+        $('modal-text').textContent = text;
+        $('modal-btn-cancel').style.display = 'none';
+        
+        $('modal-btn-ok').onclick = () => {
+            modal.style.display = 'none';
+            resolve();
+        };
+        modal.style.display = 'flex';
+    });
+}
+
+function customConfirm(text) {
+    return new Promise(resolve => {
+        const modal = $('custom-modal');
+        if (!modal) { return resolve(confirm(text)); }
+        $('modal-title').textContent = 'Confirmación';
+        $('modal-text').textContent = text;
+        $('modal-btn-cancel').style.display = 'block';
+        
+        $('modal-btn-cancel').onclick = () => {
+            modal.style.display = 'none';
+            resolve(false);
+        };
+        $('modal-btn-ok').onclick = () => {
+            modal.style.display = 'none';
+            resolve(true);
+        };
+        modal.style.display = 'flex';
+    });
+}
+
 function showState(id) {
     const states = [
         'state-loading','state-login','state-not-follower',
@@ -299,7 +335,7 @@ $('btn-register').addEventListener('click', async () => {
     } else {
         $('btn-register').disabled = false;
         $('btn-register').textContent = 'Registrar cumpleaños 🎉';
-        alert('Error al registrar: ' + (r.data?.error || 'Inténtalo de nuevo'));
+        await customAlert('Error al registrar: ' + (r.data?.error || 'Inténtalo de nuevo'));
     }
 });
 
@@ -316,13 +352,14 @@ $('btn-change').addEventListener('click', async () => {
                 const nextAllowed = new Date(lastChanged);
                 nextAllowed.setMonth(nextAllowed.getMonth() + 6);
                 if (new Date() < nextAllowed) {
-                    alert(`Debes esperar 6 meses desde tu último cambio para volver a modificar tu fecha. Podrás cambiarla a partir del ${nextAllowed.toLocaleDateString()}.`);
+                    await customAlert(`Debes esperar 6 meses desde tu último cambio para volver a modificar tu fecha. Podrás cambiarla a partir del ${nextAllowed.toLocaleDateString()}.`);
                     return;
                 }
             }
             
             if (changesCount === 0) {
-                if (!confirm('Esta será tu única oportunidad de cambiar la fecha, no podrás volver a hacerlo hasta dentro de 6 meses. ¿Estás seguro de continuar?')) {
+                const confirmed = await customConfirm('Esta será tu única oportunidad de cambiar la fecha, no podrás volver a hacerlo hasta dentro de 6 meses. ¿Estás seguro de continuar?');
+                if (!confirmed) {
                     return;
                 }
             }
