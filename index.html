@@ -169,13 +169,7 @@
                 tu alerta especial de cumpleaños en el canal desde aquí.
             </p>
 
-            <!-- Botón de lanzar alerta (solo visible si hoy es su cumpleaños) -->
-            <div id="birthday-trigger-wrap" style="display:none; width:100%; margin-bottom:8px;">
-                <button id="btn-launch-alert" class="btn-twitch" style="font-size:1.1rem; padding:18px 24px;">
-                    <span style="font-size:1.4rem;">🎂</span>
-                    ¡Es mi cumpleaños! Lanzar alerta en el stream
-                </button>
-                <p id="launch-alert-note" style="font-size:0.75rem; color:var(--text-dim); text-align:center; margin-top:10px;"></p>
+            <div id="global-cooldown-note" style="display:none; text-align:center; padding:10px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:15px; color:#ff6bcb; font-weight:700; font-size:0.9rem;">
             </div>
 
             <div class="reg-info-box">
@@ -189,10 +183,12 @@
                 </div>
             </div>
 
-            <!-- Sounds preview (shown when configured) -->
-            <div id="sounds-preview-section" style="display:none; width:100%; margin: 4px 0 8px;">
-                <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-dim); margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-                    <span>🎵</span> Sonido de tu alerta
+            <!-- Sounds preview / soundboard -->
+            <div id="sounds-preview-section" style="display:none; width:100%; margin: 15px 0 8px;">
+                <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-dim); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span>🎵</span> Sonidos de alerta
+                    </div>
                 </div>
                 <div id="sounds-preview-list" style="display:flex; flex-direction:column; gap:8px;"></div>
             </div>

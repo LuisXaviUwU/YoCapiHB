@@ -240,30 +240,22 @@ function showRegistered(birthday, sounds) {
     const dateStr = formatBirthday(birthday.month, birthday.day);
     $('reg-date-display').textContent = dateStr;
     $('reg-info-date').textContent = dateStr;
-    const selectedSoundFile = birthday.selected_sound;
-    let selectedSounds = sounds || [];
-    if (selectedSoundFile) {
-        selectedSounds = selectedSounds.filter(s => s.file === selectedSoundFile);
-    } else if (selectedSounds.length > 0) {
-        // Fallback to the first sound if none selected
-        selectedSounds = [selectedSounds[0]];
-    }
-    renderSoundsPreview(selectedSounds);
-
+    
     // Verificar si HOY es el cumpleaños del usuario (hora local)
     const now = new Date();
     const todayMonth = now.getMonth() + 1;
     const todayDay   = now.getDate();
     const isTodayBirthday = (birthday.month === todayMonth && birthday.day === todayDay);
 
-    const wrap = $('birthday-trigger-wrap');
-    const note = $('launch-alert-note');
-    if (wrap) {
-        wrap.style.display = isTodayBirthday ? 'block' : 'none';
-        if (isTodayBirthday && note) {
-            note.textContent = '✨ ¡Feliz cumpleaños! Presiona el botón para que suene tu canción en el stream.';
+    const cdNote = $('global-cooldown-note');
+    if (cdNote) {
+        cdNote.style.display = isTodayBirthday ? 'block' : 'none';
+        if (isTodayBirthday) {
+            cdNote.innerHTML = `✨ ¡Feliz cumpleaños! 🎉<br><span style="font-size:0.8rem; font-weight:400; color:var(--text-dim);">Puedes lanzar todos los sonidos al stream, 1 vez cada uno. Hay 5 min de espera entre cada alerta.</span>`;
         }
     }
+
+    renderSoundsPreview(sounds || [], birthday, isTodayBirthday);
 
     showState('state-registered');
 }
@@ -289,7 +281,7 @@ function stopPreviewAudio() {
     }
 }
 
-function renderSoundsPreview(sounds) {
+function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false) {
     const section = $('sounds-preview-section');
     const list    = $('sounds-preview-list');
     if (!sounds || sounds.length === 0) {
@@ -299,21 +291,42 @@ function renderSoundsPreview(sounds) {
     section.style.display = 'block';
     list.innerHTML = '';
 
+    const playedSounds = birthday && birthday.played_sounds ? birthday.played_sounds : [];
+
     sounds.forEach(sound => {
         if (!sound.file) return;
         const card = document.createElement('div');
         card.className = 'sound-mini-card';
+        card.style.display = 'flex';
+        card.style.alignItems = 'center';
+        card.style.flexWrap = 'wrap';
+
+        const isPlayed = playedSounds.includes(sound.file);
+
         card.innerHTML = `
-            <button class="sound-mini-play" title="Escuchar vista previa">▶</button>
-            <div class="sound-mini-info">
-                <div class="sound-mini-name">${sound.name || sound.file.replace('.mp3','')}</div>
-                <div class="sound-mini-sub">🎵 ${sound.file}</div>
+            <div style="display:flex; align-items:center; flex:1; min-width:200px;">
+                <button class="sound-mini-play" title="Escuchar vista previa">▶</button>
+                <div class="sound-mini-info">
+                    <div class="sound-mini-name">${sound.name || sound.file.replace('.mp3','')}</div>
+                    <div class="sound-mini-sub">🎵 ${sound.file}</div>
+                </div>
+                <div class="sound-mini-wave">
+                    ${[0.5,0.8,1,0.6,0.9,0.5,0.7].map((h,i) =>
+                        `<span style="height:${Math.round(h*14)}px;--d:${(0.5+i*0.1).toFixed(1)}s;--dl:${(i*0.07).toFixed(2)}s"></span>`
+                    ).join('')}
+                </div>
             </div>
-            <div class="sound-mini-wave">
-                ${[0.5,0.8,1,0.6,0.9,0.5,0.7].map((h,i) =>
-                    `<span style="height:${Math.round(h*14)}px;--d:${(0.5+i*0.1).toFixed(1)}s;--dl:${(i*0.07).toFixed(2)}s"></span>`
-                ).join('')}
-            </div>
+            ${isTodayBirthday ? `
+                <div style="margin-left:auto; margin-top:5px;">
+                    <button class="btn-launch-sound" data-file="${sound.file}" 
+                            style="background: ${isPlayed ? 'rgba(255,255,255,0.1)' : 'var(--twitch)'}; 
+                                   color: ${isPlayed ? '#888' : '#fff'};
+                                   border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: ${isPlayed ? 'not-allowed' : 'pointer'};
+                                   transition: all 0.2s;" ${isPlayed ? 'disabled' : ''}>
+                        ${isPlayed ? '✅ Ya lanzado' : '🚀 Lanzar al stream'}
+                    </button>
+                </div>
+            ` : ''}
         `;
 
         const playBtn = card.querySelector('.sound-mini-play');
@@ -337,6 +350,33 @@ function renderSoundsPreview(sounds) {
             audio.play().catch(() => stopPreviewAudio());
             audio.addEventListener('ended', () => stopPreviewAudio());
         });
+
+        // Launch alert to stream logic
+        const launchBtn = card.querySelector('.btn-launch-sound');
+        if (launchBtn && !isPlayed) {
+            launchBtn.addEventListener('click', async () => {
+                launchBtn.disabled = true;
+                launchBtn.innerHTML = '⏳ Enviando...';
+                
+                const r = await api('POST', '/api/birthday/alert', { sound_file: sound.file });
+                if (r.ok) {
+                    launchBtn.innerHTML = '✅ Ya lanzado';
+                    launchBtn.style.background = 'rgba(255,255,255,0.1)';
+                    launchBtn.style.color = '#888';
+                    launchBtn.style.cursor = 'not-allowed';
+                    
+                    const cdNote = $('global-cooldown-note');
+                    if (cdNote) {
+                        cdNote.innerHTML = `¡Enviado! 🎉<br><span style="font-size:0.8rem; font-weight:400; color:var(--text-dim);">Debes esperar 5 minutos para lanzar otra alerta diferente.</span>`;
+                    }
+                } else {
+                    launchBtn.disabled = false;
+                    launchBtn.innerHTML = '🚀 Lanzar al stream';
+                    const msg = r.data?.error || 'Error desconocido';
+                    await customAlert('Error: ' + msg);
+                }
+            });
+        }
 
         list.appendChild(card);
     });
@@ -435,35 +475,6 @@ $('btn-error-back').addEventListener('click', () => {
 
 $('btn-offline-retry').addEventListener('click', () => {
     window.location.reload();
-});
-
-// ─── Lanzar alerta de cumpleaños ─────────────────────────────────────────────────
-$('btn-launch-alert').addEventListener('click', async () => {
-    const btn  = $('btn-launch-alert');
-    const note = $('launch-alert-note');
-
-    btn.disabled = true;
-    btn.innerHTML = '<span style="font-size:1.4rem;">⏳</span> Enviando alerta...';
-
-    const r = await api('POST', '/api/birthday/alert');
-
-    if (r.ok) {
-        btn.innerHTML = '<span style="font-size:1.4rem;">✅</span> ¡Alerta enviada!';
-        btn.style.background = 'linear-gradient(135deg, #3ddc84, #28a865)';
-        if (note) note.textContent = '¡La alerta ya está sonando en el stream! 🎉 Podrás volver a lanzarla en unos minutos.';
-        // Re-habilitar en 3 minutos
-        setTimeout(() => {
-            btn.disabled = false;
-            btn.style.background = '';
-            btn.innerHTML = '<span style="font-size:1.4rem;">🎂</span> ¡Es mi cumpleaños! Lanzar alerta en el stream';
-            if (note) note.textContent = '✨ Puedes lanzar la alerta otra vez si quieres.';
-        }, 3 * 60 * 1000);
-    } else {
-        btn.disabled = false;
-        btn.innerHTML = '<span style="font-size:1.4rem;">🎂</span> ¡Es mi cumpleaños! Lanzar alerta en el stream';
-        const msg = r.data?.error || 'Error desconocido';
-        if (note) note.textContent = '❌ ' + msg;
-    }
 });
 
 // ─── Arrancar ────────────────────────────────────────────────────────────────
