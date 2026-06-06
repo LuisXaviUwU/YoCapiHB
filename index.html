@@ -147,6 +147,12 @@
                     </select>
                 </div>
             </div>
+            <div id="register-sounds-section" style="display:none; width:100%; margin: 15px 0 10px;">
+                <div style="font-size:0.85rem; font-weight:700; color:var(--text-dim); margin-bottom:10px; text-align:center;">
+                    Elige el sonido de tu alerta:
+                </div>
+                <div id="register-sounds-list" style="display:flex; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto; padding-right:5px;"></div>
+            </div>
 
             <button id="btn-register" class="btn-primary" disabled>
                 Registrar cumpleaños 🎉
@@ -159,9 +165,18 @@
             <div class="success-icon">🎉</div>
             <h2 class="card-title">¡Registrado!</h2>
             <p class="card-desc">
-                El día <strong id="reg-date-display"></strong> se activarán las
-                recompensas especiales de cumpleaños en el canal.
+                El día <strong id="reg-date-display"></strong> podrás lanzar
+                tu alerta especial de cumpleaños en el canal desde aquí.
             </p>
+
+            <!-- Botón de lanzar alerta (solo visible si hoy es su cumpleaños) -->
+            <div id="birthday-trigger-wrap" style="display:none; width:100%; margin-bottom:8px;">
+                <button id="btn-launch-alert" class="btn-twitch" style="font-size:1.1rem; padding:18px 24px;">
+                    <span style="font-size:1.4rem;">🎂</span>
+                    ¡Es mi cumpleaños! Lanzar alerta en el stream
+                </button>
+                <p id="launch-alert-note" style="font-size:0.75rem; color:var(--text-dim); text-align:center; margin-top:10px;"></p>
+            </div>
 
             <div class="reg-info-box">
                 <div class="reg-info-row">
@@ -177,7 +192,7 @@
             <!-- Sounds preview (shown when configured) -->
             <div id="sounds-preview-section" style="display:none; width:100%; margin: 4px 0 8px;">
                 <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-dim); margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-                    <span>🎵</span> Sonidos de tu cumpleaños
+                    <span>🎵</span> Sonido de tu alerta
                 </div>
                 <div id="sounds-preview-list" style="display:flex; flex-direction:column; gap:8px;"></div>
             </div>

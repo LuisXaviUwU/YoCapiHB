@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YoCapi Birthday Overlay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: transparent;
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Contenedor del alert de cumpleaños */
+        #birthday-alert {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(200px);
+            opacity: 0;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            background: linear-gradient(135deg, rgba(14, 10, 26, 0.92), rgba(30, 16, 60, 0.92));
+            border: 2px solid rgba(145, 70, 255, 0.6);
+            border-radius: 20px;
+            padding: 18px 28px;
+            box-shadow:
+                0 0 0 1px rgba(145, 70, 255, 0.2),
+                0 8px 40px rgba(145, 70, 255, 0.4),
+                0 0 80px rgba(145, 70, 255, 0.15);
+            backdrop-filter: blur(16px);
+            min-width: 380px;
+            max-width: 560px;
+            pointer-events: none;
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 100;
+        }
+
+        #birthday-alert.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .alert-avatar-wrap {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .alert-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(145, 70, 255, 0.7);
+            box-shadow: 0 0 20px rgba(145, 70, 255, 0.5);
+        }
+
+        .alert-avatar-ring {
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                #9146ff, #bf94ff, #f7d046, #ff6bcb, #9146ff
+            );
+            z-index: -1;
+            animation: ring-spin 3s linear infinite;
+        }
+
+        @keyframes ring-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #bf94ff;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .alert-user {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+
+        .alert-sound {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.55);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .alert-sound::before {
+            content: '🎵';
+            font-size: 0.85rem;
+        }
+
+        .alert-emoji {
+            font-size: 2.2rem;
+            flex-shrink: 0;
+            animation: emoji-bounce 0.6s ease-in-out infinite alternate;
+        }
+
+        @keyframes emoji-bounce {
+            from { transform: translateY(0) rotate(-5deg) scale(1); }
+            to   { transform: translateY(-6px) rotate(5deg) scale(1.08); }
+        }
+
+        /* Confetti */
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 50;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            top: -20px;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            animation: confetti-fall linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            80% { opacity: 1; }
+            100% {
+                transform: translateY(110vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Indicador de estado (visible en dev mode) */
+        #status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.3);
+            font-family: monospace;
+            display: none;
+        }
+
+        body.dev-mode #status { display: block; }
+    </style>
+</head>
+<body>
+    <div id="confetti-container" class="confetti-container"></div>
+
+    <div id="birthday-alert">
+        <div class="alert-avatar-wrap">
+            <div class="alert-avatar-ring"></div>
+            <img id="alert-avatar" src="" alt="" class="alert-avatar">
+        </div>
+        <div class="alert-content">
+            <div class="alert-title">🎂 ¡Hoy es su cumpleaños!</div>
+            <div id="alert-user" class="alert-user">Usuario</div>
+            <div id="alert-sound" class="alert-sound">Reproduciendo...</div>
+        </div>
+        <div class="alert-emoji">🎉</div>
+    </div>
+
+    <div id="status">Conectando...</div>
+
+    <script>
+        // Config: URL del backend
+        // OBS carga esto directamente desde http://localhost:3001/overlay
+        const BACKEND = 'http://localhost:3001';
+
+        const alert_el  = document.getElementById('birthday-alert');
+        const avatarEl  = document.getElementById('alert-avatar');
+        const userEl    = document.getElementById('alert-user');
+        const soundEl   = document.getElementById('alert-sound');
+        const statusEl  = document.getElementById('status');
+        const confettiC = document.getElementById('confetti-container');
+
+        let hideTimeout = null;
+        let currentAudio = null;
+
+        // ── Confetti ──────────────────────────────────────────────────────────
+        const CONFETTI_COLORS = ['#9146ff','#bf94ff','#f7d046','#ff6bcb','#4fc3f7','#ff8a65','#66bb6a'];
+
+        function launchConfetti() {
+            confettiC.innerHTML = '';
+            for (let i = 0; i < 80; i++) {
+                const p = document.createElement('div');
+                p.className = 'confetti-piece';
+                const color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+                const left  = Math.random() * 100;
+                const dur   = (2.5 + Math.random() * 2.5).toFixed(2);
+                const delay = (Math.random() * 1.5).toFixed(2);
+                const size  = (7 + Math.random() * 8).toFixed(1);
+                p.style.cssText = `
+                    background: ${color};
+                    left: ${left}%;
+                    width: ${size}px;
+                    height: ${size}px;
+                    animation-duration: ${dur}s;
+                    animation-delay: ${delay}s;
+                    border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+                `;
+                confettiC.appendChild(p);
+            }
+            setTimeout(() => confettiC.innerHTML = '', 6000);
+        }
+
+        // ── Mostrar alert de cumpleaños ───────────────────────────────────────
+        function showBirthdayAlert(data) {
+            if (hideTimeout) clearTimeout(hideTimeout);
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+            // Actualizar contenido
+            avatarEl.src  = data.avatar || '';
+            userEl.textContent  = data.user || 'Cumpleañero';
+            soundEl.textContent = data.soundName || data.sound || '';
+
+            // Mostrar
+            alert_el.classList.add('show');
+            launchConfetti();
+
+            // Reproducir sonido desde el backend
+            if (data.sound) {
+                const audio = new Audio(`${BACKEND}/music/${data.sound}`);
+                currentAudio = audio;
+                audio.volume = 1;
+                audio.play().catch(() => {});
+                audio.addEventListener('ended', () => { currentAudio = null; });
+            }
+
+            // Ocultar después de 10 segundos
+            hideTimeout = setTimeout(() => {
+                alert_el.classList.remove('show');
+            }, 10000);
+        }
+
+        // ── Conexión SSE ──────────────────────────────────────────────────────
+        function connectSSE() {
+            statusEl.textContent = 'Conectando SSE...';
+
+            const evtSource = new EventSource(`${BACKEND}/api/overlay/stream`);
+
+            evtSource.addEventListener('state', (e) => {
+                const data = JSON.parse(e.data);
+                const names = data.activeBirthdays || [];
+                statusEl.textContent = names.length > 0
+                    ? `🎂 Hoy: ${names.join(', ')}`
+                    : 'Sin cumpleaños hoy';
+            });
+
+            evtSource.addEventListener('birthday', (e) => {
+                const data = JSON.parse(e.data);
+                showBirthdayAlert(data);
+            });
+
+            evtSource.onerror = () => {
+                statusEl.textContent = 'Reconectando...';
+                evtSource.close();
+                setTimeout(connectSSE, 5000);
+            };
+
+            evtSource.onopen = () => {
+                statusEl.textContent = 'SSE conectado ✓';
+            };
+        }
+
+        // Servir música desde el backend necesita ruta
+        // Activar modo dev si se carga con ?dev=1
+        if (new URLSearchParams(window.location.search).get('dev') === '1') {
+            document.body.classList.add('dev-mode');
+        }
+
+        connectSSE();
+    </script>
+</body>
+</html>
