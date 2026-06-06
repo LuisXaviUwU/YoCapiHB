@@ -54,8 +54,8 @@
         }
 
         .alert-avatar {
-            width: 64px;
-            height: 64px;
+            width: 84px;
+            height: 84px;
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid rgba(145, 70, 255, 0.7);
@@ -83,33 +83,20 @@
         }
 
         .alert-title {
-            font-size: 0.72rem;
+            font-size: 0.85rem;
             font-weight: 700;
             color: #bf94ff;
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
         .alert-user {
-            font-size: 1.35rem;
+            font-size: 1.75rem;
             font-weight: 800;
             color: #fff;
             line-height: 1.2;
             margin-bottom: 4px;
-        }
-
-        .alert-sound {
-            font-size: 0.8rem;
-            color: rgba(255,255,255,0.55);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .alert-sound::before {
-            content: '🎵';
-            font-size: 0.85rem;
         }
 
         .alert-emoji {
@@ -181,7 +168,6 @@
         <div class="alert-content">
             <div class="alert-title">🎂 ¡Hoy es su cumpleaños!</div>
             <div id="alert-user" class="alert-user">Usuario</div>
-            <div id="alert-sound" class="alert-sound">Reproduciendo...</div>
         </div>
         <div class="alert-emoji">🎉</div>
     </div>
@@ -196,7 +182,6 @@
         const alert_el  = document.getElementById('birthday-alert');
         const avatarEl  = document.getElementById('alert-avatar');
         const userEl    = document.getElementById('alert-user');
-        const soundEl   = document.getElementById('alert-sound');
         const statusEl  = document.getElementById('status');
         const confettiC = document.getElementById('confetti-container');
 
@@ -238,7 +223,6 @@
             // Actualizar contenido
             avatarEl.src  = data.avatar || '';
             userEl.textContent  = data.user || 'Cumpleañero';
-            soundEl.textContent = data.soundName || data.sound || '';
 
             // Mostrar
             alert_el.classList.add('show');
