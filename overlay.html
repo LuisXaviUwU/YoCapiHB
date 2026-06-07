@@ -220,27 +220,45 @@
             if (hideTimeout) clearTimeout(hideTimeout);
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
 
-            // Actualizar contenido
-            avatarEl.src  = data.avatar || '';
-            userEl.textContent  = data.user || 'Cumpleañero';
+            // Ocultar temporalmente si estaba visible
+            alert_el.classList.remove('show');
 
-            // Mostrar
-            alert_el.classList.add('show');
-            launchConfetti();
+            const applyAndShow = () => {
+                // Actualizar contenido con la imagen ya cargada
+                avatarEl.src  = data.avatar || '';
+                userEl.textContent  = data.user || 'Cumpleañero';
 
-            // Reproducir sonido desde el backend
-            if (data.sound) {
-                const audio = new Audio(`${BACKEND}/music/${data.sound}`);
-                currentAudio = audio;
-                audio.volume = 1;
-                audio.play().catch(() => {});
-                audio.addEventListener('ended', () => { currentAudio = null; });
+                // Forzar reflow para reiniciar la animación CSS si se interrumpió una anterior
+                void alert_el.offsetWidth;
+
+                // Mostrar
+                alert_el.classList.add('show');
+                launchConfetti();
+
+                // Reproducir sonido desde el backend
+                if (data.sound) {
+                    const audio = new Audio(`${BACKEND}/music/${data.sound}`);
+                    currentAudio = audio;
+                    audio.volume = 1;
+                    audio.play().catch(() => {});
+                    audio.addEventListener('ended', () => { currentAudio = null; });
+                }
+
+                // Ocultar después de 10 segundos
+                hideTimeout = setTimeout(() => {
+                    alert_el.classList.remove('show');
+                }, 10000);
+            };
+
+            // Pre-cargar la imagen de perfil para evitar latencia o parpadeo
+            if (data.avatar) {
+                const img = new Image();
+                img.onload = applyAndShow;
+                img.onerror = applyAndShow;
+                img.src = data.avatar;
+            } else {
+                applyAndShow();
             }
-
-            // Ocultar después de 10 segundos
-            hideTimeout = setTimeout(() => {
-                alert_el.classList.remove('show');
-            }, 10000);
         }
 
         // ── Conexión SSE ──────────────────────────────────────────────────────
