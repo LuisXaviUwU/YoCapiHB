@@ -187,6 +187,7 @@
 
         let hideTimeout = null;
         let currentAudio = null;
+        let overlayToken = null; // se obtiene del backend al iniciar
 
         // ── Confetti ──────────────────────────────────────────────────────────
         const CONFETTI_COLORS = ['#9146ff','#bf94ff','#f7d046','#ff6bcb','#4fc3f7','#ff8a65','#66bb6a'];
@@ -235,9 +236,10 @@
                 alert_el.classList.add('show');
                 launchConfetti();
 
-                // Reproducir sonido desde el backend
+                // Reproducir sonido desde el backend (con token de overlay)
                 if (data.sound) {
-                    const audio = new Audio(`${BACKEND}/music/${data.sound}`);
+                    const tokenParam = overlayToken ? `?token=${overlayToken}` : '';
+                    const audio = new Audio(`${BACKEND}/music/${data.sound}${tokenParam}`);
                     currentAudio = audio;
                     audio.volume = 1;
                     audio.play().catch(() => {});
@@ -264,8 +266,9 @@
         // ── Conexión SSE ──────────────────────────────────────────────────────
         function connectSSE() {
             statusEl.textContent = 'Conectando SSE...';
-
-            const evtSource = new EventSource(`${BACKEND}/api/overlay/stream`);
+            // Incluir el token de overlay en la URL del SSE
+            const tokenParam = overlayToken ? `?token=${overlayToken}` : '';
+            const evtSource = new EventSource(`${BACKEND}/api/overlay/stream${tokenParam}`);
 
             evtSource.addEventListener('state', (e) => {
                 const data = JSON.parse(e.data);
@@ -291,13 +294,18 @@
             };
         }
 
-        // Servir música desde el backend necesita ruta
         // Activar modo dev si se carga con ?dev=1
         if (new URLSearchParams(window.location.search).get('dev') === '1') {
             document.body.classList.add('dev-mode');
         }
 
-        connectSSE();
+        // Obtener el token del overlay desde el backend (solo accesible en localhost)
+        // y luego iniciar la conexión SSE
+        fetch(`${BACKEND}/api/overlay/token`)
+            .then(r => r.ok ? r.json() : null)
+            .then(data => { if (data?.token) overlayToken = data.token; })
+            .catch(() => {})
+            .finally(() => connectSSE());
     </script>
 </body>
 </html>

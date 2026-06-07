@@ -120,12 +120,12 @@ async function loadStats() {
 
 // ─── Inicializar ──────────────────────────────────────────────────────────────
 async function init() {
-    // Leer sesión de la URL (después del redirect OAuth)
+    // Leer parámetros de la URL (después del redirect OAuth)
     const params = new URLSearchParams(window.location.search);
-    const sessionFromUrl = params.get('session');
-    const error = params.get('error');
+    const authCode = params.get('code');   // código de un solo uso
+    const error    = params.get('error');
 
-    // Limpiar URL
+    // Limpiar URL inmediatamente para no dejar rastro del código
     window.history.replaceState({}, '', window.location.pathname);
 
     // Leer sesión guardada en localStorage
@@ -139,10 +139,14 @@ async function init() {
         return;
     }
 
-    // Si llegó una sesión nueva desde el OAuth redirect
-    if (sessionFromUrl) {
-        localStorage.setItem('bday_session', sessionFromUrl);
-        currentSession = sessionFromUrl;
+    // Si llegó un código de un solo uso, canjearlo por el token real
+    if (authCode) {
+        const exchRes = await api('GET', `/api/auth/exchange?code=${authCode}`);
+        if (exchRes.ok && exchRes.data.token) {
+            localStorage.setItem('bday_session', exchRes.data.token);
+            currentSession = exchRes.data.token;
+        }
+        // Si falla el canje, continuar sin sesión (mostrará login)
     } else if (savedSession) {
         currentSession = savedSession;
     }
