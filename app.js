@@ -122,7 +122,8 @@ async function loadStats() {
 async function init() {
     // Leer parámetros de la URL (después del redirect OAuth)
     const params = new URLSearchParams(window.location.search);
-    const authCode = params.get('code');   // código de un solo uso
+    const authCode = params.get('code');   // código devuelto por Twitch
+    const returnedState = params.get('state');
     const error    = params.get('error');
 
     // Limpiar URL inmediatamente para no dejar rastro del código
@@ -133,20 +134,29 @@ async function init() {
 
     showState('state-loading');
 
-    // Error del backend
+    // Error devuelto
     if (error) {
         handleError(error);
         return;
     }
 
-    // Si llegó un código de un solo uso, canjearlo por el token real
+    // Si llegó un código de Twitch, canjearlo por el token real
     if (authCode) {
-        const exchRes = await api('GET', `/api/auth/exchange?code=${authCode}`);
+        const savedState = sessionStorage.getItem('oauth_state');
+        if (savedState && returnedState !== savedState) {
+            handleError('invalid_state');
+            return;
+        }
+        sessionStorage.removeItem('oauth_state');
+
+        const exchRes = await api('POST', '/api/auth/exchange-viewer-code', { code: authCode });
         if (exchRes.ok && exchRes.data.token) {
             localStorage.setItem('bday_session', exchRes.data.token);
             currentSession = exchRes.data.token;
+        } else {
+            handleError(exchRes.data?.error || 'auth_failed');
+            return;
         }
-        // Si falla el canje, continuar sin sesión (mostrará login)
     } else if (savedSession) {
         currentSession = savedSession;
     }
@@ -387,13 +397,31 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false) {
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-$('btn-login').addEventListener('click', () => {
-    window.location.href = BACKEND_URL + '/auth/twitch/user';
-});
+async function doViewerLogin() {
+    showState('state-loading');
+    const r = await api('GET', '/api/config/public');
+    if (r.ok && r.data.client_id) {
+        // Generar state aleatorio
+        const state = Math.random().toString(36).substring(2, 15);
+        sessionStorage.setItem('oauth_state', state);
 
-$('btn-retry').addEventListener('click', () => {
-    window.location.href = BACKEND_URL + '/auth/twitch/user';
-});
+        const redirectUri = (r.data.frontend_url || window.location.origin + window.location.pathname).replace(/\/$/, '') + '/';
+
+        const params = new URLSearchParams({
+            client_id: r.data.client_id,
+            redirect_uri: redirectUri,
+            response_type: 'code',
+            scope: 'user:read:follows',
+            state: state
+        });
+        window.location.href = 'https://id.twitch.tv/oauth2/authorize?' + params.toString();
+    } else {
+        handleError('streamer_not_setup');
+    }
+}
+
+$('btn-login').addEventListener('click', doViewerLogin);
+$('btn-retry').addEventListener('click', doViewerLogin);
 
 // ─── Logout ───────────────────────────────────────────────────────────────────
 $('btn-logout').addEventListener('click', () => {
