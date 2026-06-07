@@ -422,6 +422,11 @@ $('btn-register').addEventListener('click', async () => {
     const selectedSoundInput = document.querySelector('input[name="sound_selection"]:checked');
     const selected_sound = selectedSoundInput ? selectedSoundInput.value : null;
 
+    // Confirmación de que no se podrá cambiar en 6 meses
+    const dateStr = `${day} de ${$('pick-month').options[$('pick-month').selectedIndex].text}`;
+    const confirmed = await customConfirm(`¿Confirmas que tu cumpleaños es el ${dateStr}? No podrás volver a cambiar la fecha hasta dentro de 6 meses.`);
+    if (!confirmed) return;
+
     $('btn-register').disabled = true;
     $('btn-register').textContent = 'Guardando...';
 
@@ -453,13 +458,6 @@ $('btn-change').addEventListener('click', async () => {
                 nextAllowed.setMonth(nextAllowed.getMonth() + 6);
                 if (new Date() < nextAllowed) {
                     await customAlert(`Debes esperar 6 meses desde tu último cambio para volver a modificar tu fecha. Podrás cambiarla a partir del ${nextAllowed.toLocaleDateString()}.`);
-                    return;
-                }
-            }
-            
-            if (changesCount === 0) {
-                const confirmed = await customConfirm('Esta será tu única oportunidad de cambiar la fecha, no podrás volver a hacerlo hasta dentro de 6 meses. ¿Estás seguro de continuar?');
-                if (!confirmed) {
                     return;
                 }
             }
