@@ -482,14 +482,13 @@ $('btn-change').addEventListener('click', async () => {
     if (meRes.ok) {
         const me = meRes.data;
         if (me.birthday) {
-            let changesCount = me.birthday.changes_count || 0;
-            let lastChanged = me.birthday.last_changed_at ? new Date(me.birthday.last_changed_at) : null;
+            let lastChanged = me.birthday.last_changed_at ? new Date(me.birthday.last_changed_at) : new Date(me.birthday.registered_at);
             
-            if (changesCount >= 1 && lastChanged) {
+            if (lastChanged) {
                 const nextAllowed = new Date(lastChanged);
                 nextAllowed.setMonth(nextAllowed.getMonth() + 6);
                 if (new Date() < nextAllowed) {
-                    await customAlert(`Debes esperar 6 meses desde tu último cambio para volver a modificar tu fecha. Podrás cambiarla a partir del ${nextAllowed.toLocaleDateString()}.`);
+                    await customAlert(`Debes esperar 6 meses desde tu último registro o cambio. Podrás modificar tu fecha a partir del ${nextAllowed.toLocaleDateString()}.`);
                     return;
                 }
             }
