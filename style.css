@@ -225,6 +225,17 @@ body {
     font-weight: 500;
     backdrop-filter: blur(12px);
     transition: border-color var(--t);
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+#user-name {
+    display: inline-block;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
 }
 
 .user-pill:hover {
@@ -1463,6 +1474,36 @@ body {
     .btn-twitch,
     .btn-primary {
         padding: 13px 20px;
+    }
+
+    /* Ajustes para el header en móvil */
+    .brand-logo {
+        width: 50px;
+        height: 50px;
+    }
+
+    .brand-name {
+        font-size: 1.25rem;
+    }
+
+    .user-pill {
+        padding: 4px 10px 4px 4px;
+        font-size: 0.75rem;
+        max-width: 40vw; /* Evitar que empuje al logo */
+    }
+
+    .user-avatar-sm {
+        width: 24px;
+        height: 24px;
+    }
+
+    #user-name {
+        display: inline-block;
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: middle;
     }
 }
 
