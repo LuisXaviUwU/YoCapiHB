@@ -508,4 +508,10 @@ $('btn-offline-retry').addEventListener('click', () => {
 });
 
 // ─── Arrancar ────────────────────────────────────────────────────────────────
+window.addEventListener('pageshow', (e) => {
+    // Si el usuario regresa usando el botón 'Atrás', sacarlo de la pantalla de carga
+    if (e.persisted) {
+        init();
+    }
+});
 init();
