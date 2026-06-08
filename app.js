@@ -181,6 +181,7 @@ async function init() {
                 showRegisterForm(me);
             }
             loadStats();
+            loadCommunityUpcoming();
             return;
         } else {
             // Sesión expirada
@@ -309,6 +310,41 @@ function showRegisterForm(me) {
 
     validateDatePicker();
     showState('state-register');
+}
+
+// ─── Próximos Cumpleaños de la Comunidad ──────────────────────────────────────
+async function loadCommunityUpcoming() {
+    const res = await api('GET', '/api/community/upcoming');
+    const section = $('section-community');
+    const list = $('community-upcoming-list');
+    
+    if (!section || !list) return;
+
+    if (!res.ok || !res.data || !res.data.upcoming || res.data.upcoming.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+    list.innerHTML = '';
+
+    res.data.upcoming.forEach(u => {
+        const isToday = u.daysFromNow === 0;
+        const avatarUrl = u.profile_image || 'https://static-cdn.jtvnw.net/jtv_user_pictures/8a6381c7-d0c0-4576-b179-38bd5ce1d6af-profile_image-70x70.png';
+        const dateStr = formatBirthday(u.birth_month, u.birth_day);
+        
+        const card = document.createElement('div');
+        card.className = `community-card ${isToday ? 'community-today' : ''}`;
+        
+        card.innerHTML = `
+            <img class="community-avatar" src="${avatarUrl}" alt="${u.display_name}">
+            <div class="community-name">${u.display_name}</div>
+            <div class="community-date">${dateStr}</div>
+            ${isToday ? `<div class="community-today-badge">¡Es hoy! 🎉</div>` : `<div style="font-size:0.65rem; color:var(--text-dim); margin-top:2px;">${u.daysFromNow === 1 ? 'Mañana' : 'En ' + u.daysFromNow + ' días'}</div>`}
+        `;
+        
+        list.appendChild(card);
+    });
 }
 
 function showRegistered(me) {
