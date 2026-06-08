@@ -816,18 +816,36 @@
                 <section id="section-settings" class="dash-section">
                     <div class="dash-panel">
                         <div class="dash-panel-title"><span>🔧</span> Configuración de Twitch</div>
-                        <div class="config-section">
-                            <label class="config-label">Twitch Client ID</label>
-                            <input type="text" id="cfg-client-id" class="config-input"
-                                placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-                        </div>
-                        <div class="config-section">
-                            <label class="config-label">Twitch Client Secret</label>
-                            <input type="password" id="cfg-client-secret" class="config-input"
-                                placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+
+                        <!-- Credenciales de Twitch: solo lectura, vienen del .env -->
+                        <div class="config-section" style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px; margin-bottom:16px;">
+                            <div style="font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px;">Credenciales de la app Twitch</div>
+                            <div style="font-size:0.82rem; color:var(--text-dim); margin-bottom:14px; line-height:1.5;">
+                                ⚠️ Las credenciales (<code>TWITCH_CLIENT_ID</code>, <code>TWITCH_CLIENT_SECRET</code>) se configuran en el archivo <strong>.env</strong> del servidor y no pueden editarse desde aquí.
+                            </div>
+                            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                                <div>
+                                    <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:4px;">TWITCH_CLIENT_ID</div>
+                                    <span id="status-client-id" style="font-size:0.82rem; font-weight:600;">Verificando...</span>
+                                </div>
+                                <div>
+                                    <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:4px;">TWITCH_CLIENT_SECRET</div>
+                                    <span id="status-client-secret" style="font-size:0.82rem; font-weight:600;">Verificando...</span>
+                                </div>
+                            </div>
                         </div>
 
-                        <button id="btn-save-config" class="dash-btn">Guardar configuración</button>
+                        <!-- URLs editables: úsica config que sí se puede cambiar desde aquí -->
+                        <div class="config-section">
+                            <label class="config-label">URL del frontend (GitHub Pages)</label>
+                            <input type="text" id="cfg-frontend-url" class="config-input" placeholder="https://usuario.github.io/repo">
+                        </div>
+                        <div class="config-section">
+                            <label class="config-label">URL del backend (ngrok)</label>
+                            <input type="text" id="cfg-backend-url" class="config-input" placeholder="https://xxxx.ngrok-free.app">
+                        </div>
+
+                        <button id="btn-save-config" class="dash-btn">💾 Guardar URLs</button>
                         <div id="config-msg" class="msg"></div>
                     </div>
 
@@ -1136,6 +1154,27 @@
             }
 
             renderUpcoming(data.upcoming || []);
+
+            // Poblar panel de Ajustes con valores actuales
+            const frontendUrlEl = document.getElementById('cfg-frontend-url');
+            const backendUrlEl  = document.getElementById('cfg-backend-url');
+            if (frontendUrlEl) frontendUrlEl.value = data.frontendUrl || '';
+            if (backendUrlEl)  backendUrlEl.value  = data.backendUrl  || '';
+
+            const clientIdStatus     = document.getElementById('status-client-id');
+            const clientSecretStatus = document.getElementById('status-client-secret');
+            if (clientIdStatus) {
+                clientIdStatus.textContent = data.configured
+                    ? '✓ Configurado'
+                    : '✗ No configurado';
+                clientIdStatus.style.color = data.configured ? '#3ddc84' : '#ff6b6b';
+            }
+            if (clientSecretStatus) {
+                clientSecretStatus.textContent = data.configured
+                    ? '✓ Configurado'
+                    : '✗ No configurado';
+                clientSecretStatus.style.color = data.configured ? '#3ddc84' : '#ff6b6b';
+            }
         }
 
         document.getElementById('btn-streamer-disconnect').addEventListener('click', async () => {
