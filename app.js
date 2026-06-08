@@ -176,7 +176,7 @@ async function init() {
             updateUserPill(me);
 
             if (me.birthday) {
-                showRegistered(me.birthday, me.sounds);
+                showRegistered(me);
             } else {
                 showRegisterForm(me);
             }
@@ -311,7 +311,9 @@ function showRegisterForm(me) {
     showState('state-register');
 }
 
-function showRegistered(birthday, sounds) {
+function showRegistered(me) {
+    const birthday = me.birthday;
+    const sounds = me.sounds;
     const dateStr = formatBirthday(birthday.month, birthday.day);
     $('reg-date-display').textContent = dateStr;
     $('reg-info-date').textContent = dateStr;
@@ -349,6 +351,16 @@ function showRegistered(birthday, sounds) {
         }
     }
 
+    const badgeContainer = $('birthday-badge-container');
+    if (badgeContainer) {
+        if (isTodayBirthday) {
+            badgeContainer.innerHTML = `<div style="display:inline-block; background:linear-gradient(135deg, var(--twitch), #ff6bcb); color:#fff; font-weight:bold; padding:8px 16px; border-radius:20px; font-size:1rem; box-shadow:0 4px 15px rgba(255, 107, 203, 0.4); animation:sound-pulse 2s infinite;">🎂 ¡Feliz Cumpleaños, ${me.display_name || 'Streamer'}! 🎂</div>`;
+            badgeContainer.style.display = 'block';
+        } else {
+            badgeContainer.style.display = 'none';
+        }
+    }
+
     const cdNote = $('global-cooldown-note');
     if (cdNote) {
         cdNote.style.display = isTodayBirthday ? 'block' : 'none';
@@ -357,7 +369,7 @@ function showRegistered(birthday, sounds) {
         }
     }
 
-    renderSoundsPreview(sounds || [], birthday, isTodayBirthday);
+    renderSoundsPreview(sounds || [], birthday, isTodayBirthday, me.obs_connected);
 
     showState('state-registered');
 }
@@ -383,7 +395,7 @@ function stopPreviewAudio() {
     }
 }
 
-function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false) {
+function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, obsConnected = false) {
     const section = $('sounds-preview-section');
     const list    = $('sounds-preview-list');
     if (!sounds || sounds.length === 0) {
@@ -456,6 +468,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false) {
             </div>
             ${canLaunch ? `
                 <div style="margin-left:auto; margin-top:5px;">
+                    ${obsConnected ? `
                     <button class="btn-launch-sound" data-file="${sound.file}" 
                             style="background: ${isPlayed ? 'rgba(255,255,255,0.1)' : 'var(--twitch)'}; 
                                    color: ${isPlayed ? '#888' : '#fff'};
@@ -463,6 +476,12 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false) {
                                    transition: all 0.2s;" ${isPlayed ? 'disabled' : ''}>
                         ${isPlayed ? '✅ Ya lanzado' : '🚀 Lanzar al stream'}
                     </button>
+                    ` : `
+                    <button class="btn-launch-sound" disabled
+                            style="background: rgba(255,255,255,0.05); color: #888; border: 1px solid var(--border); padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: not-allowed;">
+                        ⚠️ OBS no conectado (avisa a yocapi)
+                    </button>
+                    `}
                 </div>
             ` : ''}
         `;
@@ -489,10 +508,12 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false) {
             audio.addEventListener('ended', () => stopPreviewAudio());
         });
 
-        // Launch alert to stream logic
         const launchBtn = card.querySelector('.btn-launch-sound');
-        if (launchBtn && !isPlayed) {
+        if (launchBtn && !isPlayed && obsConnected) {
             launchBtn.addEventListener('click', async () => {
+                const confirmed = await customConfirm('¿Seguro que deseas lanzar tu alerta de cumpleaños al stream ahora? Esto no se puede deshacer y solo podrás hacerlo 1 vez hoy.');
+                if (!confirmed) return;
+
                 launchBtn.disabled = true;
                 launchBtn.innerHTML = '⏳ Enviando...';
                 
@@ -505,7 +526,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false) {
                     
                     const cdNote = $('global-cooldown-note');
                     if (cdNote) {
-                        cdNote.innerHTML = `¡Enviado! 🎉`;
+                        cdNote.innerHTML = `✅ Tu alerta fue enviada al stream. Si no sonó, yocapi puede repetirla desde el dashboard.`;
                     }
                 } else {
                     launchBtn.disabled = false;
@@ -591,7 +612,7 @@ $('btn-register').addEventListener('click', async () => {
         // Actualizar la vista de usuario
         const meRes = await api('GET', '/api/me');
         if (meRes.ok) updateUserPill(meRes.data);
-        showRegistered(meRes.ok ? meRes.data.birthday : { month, day }, meRes.ok ? meRes.data.sounds : []);
+        showRegistered(meRes.ok ? meRes.data : { display_name: '', birthday: { month, day }, sounds: [], obs_connected: false });
         loadStats();
     } else {
         $('btn-register').disabled = false;
