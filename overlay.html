@@ -17,7 +17,6 @@
             height: 100vh;
         }
 
-        /* Contenedor del alert de cumpleaños */
         #birthday-alert {
             position: fixed;
             bottom: 80px;
@@ -48,10 +47,7 @@
             opacity: 1;
         }
 
-        .alert-avatar-wrap {
-            position: relative;
-            flex-shrink: 0;
-        }
+        .alert-avatar-wrap { position: relative; flex-shrink: 0; }
 
         .alert-avatar {
             width: 84px;
@@ -66,21 +62,14 @@
             position: absolute;
             inset: -4px;
             border-radius: 50%;
-            background: conic-gradient(
-                from 0deg,
-                #9146ff, #bf94ff, #f7d046, #ff6bcb, #9146ff
-            );
+            background: conic-gradient(from 0deg, #9146ff, #bf94ff, #f7d046, #ff6bcb, #9146ff);
             z-index: -1;
             animation: ring-spin 3s linear infinite;
         }
 
-        @keyframes ring-spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes ring-spin { to { transform: rotate(360deg); } }
 
-        .alert-content {
-            flex: 1;
-        }
+        .alert-content { flex: 1; }
 
         .alert-title {
             font-size: 0.85rem;
@@ -99,6 +88,15 @@
             margin-bottom: 4px;
         }
 
+        /* Indicador de cola: "+2 más en cola" */
+        .alert-queue-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #bf94ff;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+
         .alert-emoji {
             font-size: 2.2rem;
             flex-shrink: 0;
@@ -110,13 +108,9 @@
             to   { transform: translateY(-6px) rotate(5deg) scale(1.08); }
         }
 
-        /* Confetti */
         .confetti-container {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             pointer-events: none;
             overflow: hidden;
             z-index: 50;
@@ -125,36 +119,27 @@
         .confetti-piece {
             position: absolute;
             top: -20px;
-            width: 10px;
-            height: 10px;
             border-radius: 2px;
             animation: confetti-fall linear forwards;
         }
 
         @keyframes confetti-fall {
-            0% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 1;
-            }
-            80% { opacity: 1; }
-            100% {
-                transform: translateY(110vh) rotate(720deg);
-                opacity: 0;
-            }
+            0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+            80%  { opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
         }
 
-        /* Indicador de estado (visible en dev mode) */
-        #status {
+        /* Indicadores de debug — visibles solo con ?dev=1 */
+        #status, #queue-status {
             position: fixed;
-            top: 10px;
             right: 10px;
-            font-size: 0.65rem;
-            color: rgba(255,255,255,0.3);
             font-family: monospace;
             display: none;
         }
-
-        body.dev-mode #status { display: block; }
+        #status       { top: 10px; font-size: 0.65rem; color: rgba(255,255,255,0.3); }
+        #queue-status { top: 26px; font-size: 0.60rem; color: rgba(191,148,255,0.5); }
+        body.dev-mode #status,
+        body.dev-mode #queue-status { display: block; }
     </style>
 </head>
 <body>
@@ -168,47 +153,124 @@
         <div class="alert-content">
             <div class="alert-title">🎂 ¡Hoy es su cumpleaños!</div>
             <div id="alert-user" class="alert-user">Usuario</div>
+            <div id="alert-queue-badge" class="alert-queue-badge" style="display:none;"></div>
         </div>
         <div class="alert-emoji">🎉</div>
     </div>
 
     <div id="status">Conectando...</div>
+    <div id="queue-status">Cola: 0</div>
 
     <script>
-        // Config: URL del backend
-        // OBS carga esto directamente desde http://localhost:3001/overlay
         const BACKEND = 'http://localhost:3001';
 
-        const alert_el  = document.getElementById('birthday-alert');
-        const avatarEl  = document.getElementById('alert-avatar');
-        const userEl    = document.getElementById('alert-user');
-        const statusEl  = document.getElementById('status');
-        const confettiC = document.getElementById('confetti-container');
+        const alertEl    = document.getElementById('birthday-alert');
+        const avatarEl   = document.getElementById('alert-avatar');
+        const userEl     = document.getElementById('alert-user');
+        const queueBadge = document.getElementById('alert-queue-badge');
+        const statusEl   = document.getElementById('status');
+        const queueDbg   = document.getElementById('queue-status');
+        const confettiC  = document.getElementById('confetti-container');
 
-        let hideTimeout = null;
-        let currentAudio = null;
-        let overlayToken = null; // se obtiene del backend al iniciar
+        let overlayToken = null;
+
+        // ── Cola FIFO de alertas ──────────────────────────────────────────────
+        const alertQueue = [];  // { user, avatar, sound, soundName }
+        let   isPlaying  = false;
+        const MAX_QUEUE  = 5;       // descarta el más viejo si se supera
+        const DISPLAY_MS = 10_000; // tiempo máximo por alerta (ms)
+
+        function dbgQueue() {
+            queueDbg.textContent = `Cola: ${alertQueue.length} | playing: ${isPlaying}`;
+        }
+
+        function enqueueAlert(data) {
+            if (alertQueue.length >= MAX_QUEUE) {
+                alertQueue.shift(); // descartar el más antiguo
+                console.warn('[OVERLAY] Cola llena — se descartó una alerta antigua.');
+            }
+            alertQueue.push(data);
+            dbgQueue();
+            if (!isPlaying) processQueue();
+        }
+
+        function processQueue() {
+            if (alertQueue.length === 0) {
+                isPlaying = false;
+                dbgQueue();
+                return;
+            }
+
+            isPlaying = true;
+            const data = alertQueue.shift();
+            dbgQueue();
+
+            // Mostrar cuántas quedan pendientes
+            if (alertQueue.length > 0) {
+                queueBadge.textContent = `+${alertQueue.length} más en cola`;
+                queueBadge.style.display = 'block';
+            } else {
+                queueBadge.style.display = 'none';
+            }
+
+            const show = () => {
+                avatarEl.src      = data.avatar || '';
+                userEl.textContent = data.user || 'Cumpleañero';
+
+                // Reiniciar transición CSS
+                alertEl.classList.remove('show');
+                void alertEl.offsetWidth;
+                alertEl.classList.add('show');
+
+                launchConfetti();
+
+                // advance() se llama una sola vez (audio.ended O timeout)
+                let done = false;
+                const advance = () => {
+                    if (done) return;
+                    done = true;
+                    alertEl.classList.remove('show');
+                    setTimeout(processQueue, 800); // pausa entre alertas
+                };
+
+                if (data.sound) {
+                    const tok = overlayToken ? `?token=${overlayToken}` : '';
+                    const audio = new Audio(`${BACKEND}/music/${data.sound}${tok}`);
+                    audio.volume = 1;
+                    audio.play().catch(() => {});
+                    audio.addEventListener('ended', advance);
+                    setTimeout(advance, DISPLAY_MS); // seguridad si el audio es muy largo
+                } else {
+                    setTimeout(advance, DISPLAY_MS);
+                }
+            };
+
+            // Pre-cargar avatar para evitar parpadeo
+            if (data.avatar) {
+                const img = new Image();
+                img.onload = img.onerror = show;
+                img.src = data.avatar;
+            } else {
+                show();
+            }
+        }
 
         // ── Confetti ──────────────────────────────────────────────────────────
-        const CONFETTI_COLORS = ['#9146ff','#bf94ff','#f7d046','#ff6bcb','#4fc3f7','#ff8a65','#66bb6a'];
+        const COLORS = ['#9146ff','#bf94ff','#f7d046','#ff6bcb','#4fc3f7','#ff8a65','#66bb6a'];
 
         function launchConfetti() {
             confettiC.innerHTML = '';
             for (let i = 0; i < 80; i++) {
-                const p = document.createElement('div');
+                const p   = document.createElement('div');
                 p.className = 'confetti-piece';
-                const color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-                const left  = Math.random() * 100;
-                const dur   = (2.5 + Math.random() * 2.5).toFixed(2);
-                const delay = (Math.random() * 1.5).toFixed(2);
-                const size  = (7 + Math.random() * 8).toFixed(1);
+                const col = COLORS[Math.floor(Math.random() * COLORS.length)];
+                const sz  = (7 + Math.random() * 8).toFixed(1);
                 p.style.cssText = `
-                    background: ${color};
-                    left: ${left}%;
-                    width: ${size}px;
-                    height: ${size}px;
-                    animation-duration: ${dur}s;
-                    animation-delay: ${delay}s;
+                    background: ${col};
+                    left: ${(Math.random() * 100).toFixed(1)}%;
+                    width: ${sz}px; height: ${sz}px;
+                    animation-duration: ${(2.5 + Math.random() * 2.5).toFixed(2)}s;
+                    animation-delay: ${(Math.random() * 1.5).toFixed(2)}s;
                     border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
                 `;
                 confettiC.appendChild(p);
@@ -216,96 +278,42 @@
             setTimeout(() => confettiC.innerHTML = '', 6000);
         }
 
-        // ── Mostrar alert de cumpleaños ───────────────────────────────────────
-        function showBirthdayAlert(data) {
-            if (hideTimeout) clearTimeout(hideTimeout);
-            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-
-            // Ocultar temporalmente si estaba visible
-            alert_el.classList.remove('show');
-
-            const applyAndShow = () => {
-                // Actualizar contenido con la imagen ya cargada
-                avatarEl.src  = data.avatar || '';
-                userEl.textContent  = data.user || 'Cumpleañero';
-
-                // Forzar reflow para reiniciar la animación CSS si se interrumpió una anterior
-                void alert_el.offsetWidth;
-
-                // Mostrar
-                alert_el.classList.add('show');
-                launchConfetti();
-
-                // Reproducir sonido desde el backend (con token de overlay)
-                if (data.sound) {
-                    const tokenParam = overlayToken ? `?token=${overlayToken}` : '';
-                    const audio = new Audio(`${BACKEND}/music/${data.sound}${tokenParam}`);
-                    currentAudio = audio;
-                    audio.volume = 1;
-                    audio.play().catch(() => {});
-                    audio.addEventListener('ended', () => { currentAudio = null; });
-                }
-
-                // Ocultar después de 10 segundos
-                hideTimeout = setTimeout(() => {
-                    alert_el.classList.remove('show');
-                }, 10000);
-            };
-
-            // Pre-cargar la imagen de perfil para evitar latencia o parpadeo
-            if (data.avatar) {
-                const img = new Image();
-                img.onload = applyAndShow;
-                img.onerror = applyAndShow;
-                img.src = data.avatar;
-            } else {
-                applyAndShow();
-            }
-        }
-
-        // ── Conexión SSE ──────────────────────────────────────────────────────
+        // ── SSE ───────────────────────────────────────────────────────────────
         function connectSSE() {
             statusEl.textContent = 'Conectando SSE...';
-            // Incluir el token de overlay en la URL del SSE
-            const tokenParam = overlayToken ? `?token=${overlayToken}` : '';
-            const evtSource = new EventSource(`${BACKEND}/api/overlay/stream${tokenParam}`);
+            const tok = overlayToken ? `?token=${overlayToken}` : '';
+            const src = new EventSource(`${BACKEND}/api/overlay/stream${tok}`);
 
-            evtSource.addEventListener('state', (e) => {
-                const data = JSON.parse(e.data);
-                const names = data.activeBirthdays || [];
+            src.addEventListener('state', e => {
+                const d = JSON.parse(e.data);
+                const names = d.activeBirthdays || [];
                 statusEl.textContent = names.length > 0
                     ? `🎂 Hoy: ${names.join(', ')}`
                     : 'Sin cumpleaños hoy';
             });
 
-            evtSource.addEventListener('birthday', (e) => {
-                const data = JSON.parse(e.data);
-                showBirthdayAlert(data);
+            src.addEventListener('birthday', e => {
+                enqueueAlert(JSON.parse(e.data));
             });
 
-            evtSource.onerror = () => {
+            src.onerror = () => {
                 statusEl.textContent = 'Reconectando...';
-                evtSource.close();
+                src.close();
                 setTimeout(connectSSE, 5000);
             };
 
-            evtSource.onopen = () => {
-                statusEl.textContent = 'SSE conectado ✓';
-            };
+            src.onopen = () => { statusEl.textContent = 'SSE conectado ✓'; };
         }
 
-        // Activar modo dev si se carga con ?dev=1
-        if (new URLSearchParams(window.location.search).get('dev') === '1') {
+        if (new URLSearchParams(location.search).get('dev') === '1') {
             document.body.classList.add('dev-mode');
         }
 
-        // Obtener el token del overlay desde el backend (solo accesible en localhost)
-        // y luego iniciar la conexión SSE
         fetch(`${BACKEND}/api/overlay/token`)
             .then(r => r.ok ? r.json() : null)
-            .then(data => { if (data?.token) overlayToken = data.token; })
+            .then(d => { if (d?.token) overlayToken = d.token; })
             .catch(() => {})
-            .finally(() => connectSSE());
+            .finally(connectSSE);
     </script>
 </body>
 </html>

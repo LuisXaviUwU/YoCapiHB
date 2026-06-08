@@ -449,10 +449,150 @@
             justify-content: center;
         }
 
-        /* ── Run cron result ─────────────────────────────────── */
+        /* ── Run cron result ──────────────────────────────────────── */
         #cron-result {
             margin-top: 16px;
         }
+
+        /* ── Today Section Cards ──────────────────────────────────── */
+        .today-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .today-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 18px;
+            background: rgba(145, 70, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            transition: border-color var(--t);
+        }
+
+        .today-card:hover { border-color: var(--border-hi); }
+
+        .today-card-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border-hi);
+            flex-shrink: 0;
+        }
+
+        .today-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .today-card-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-hi);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .today-card-meta {
+            font-size: 0.74rem;
+            color: var(--text-dim);
+            margin-top: 3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .today-card-sound {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(145, 70, 255, 0.08);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.7rem;
+            color: var(--twitch-lt);
+            font-weight: 600;
+        }
+
+        .today-card-alerted {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 9px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .today-card-alerted.yes {
+            background: rgba(61, 220, 132, 0.1);
+            border: 1px solid rgba(61, 220, 132, 0.25);
+            color: var(--success);
+        }
+
+        .today-card-alerted.no {
+            background: rgba(145, 70, 255, 0.06);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+        }
+
+        .today-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+            align-items: center;
+        }
+
+        .today-alert-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            background: linear-gradient(135deg, var(--twitch), var(--twitch-dk));
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            transition: all var(--t);
+            box-shadow: 0 3px 12px rgba(145, 70, 255, 0.3);
+            white-space: nowrap;
+        }
+
+        .today-alert-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 18px rgba(145, 70, 255, 0.45);
+        }
+
+        .today-alert-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .today-sound-select {
+            padding: 6px 10px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xs);
+            color: var(--text-hi);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.78rem;
+            outline: none;
+            transition: border-color var(--t);
+            cursor: pointer;
+        }
+
+        .today-sound-select:focus { border-color: var(--border-glow); }
     </style>
 </head>
 
@@ -500,6 +640,9 @@
             <span class="dash-nav-label">General</span>
             <div class="dash-nav-item active" data-section="overview">
                 <span class="nav-icon">📊</span> Resumen
+            </div>
+            <div class="dash-nav-item" data-section="today">
+                <span class="nav-icon">🎉</span> Hoy
             </div>
             <div class="dash-nav-item" data-section="birthdays">
                 <span class="nav-icon">🎂</span> Todos los cumpleaños
@@ -579,6 +722,17 @@
                     </div>
 
                     <div id="cron-result"></div>
+                </section>
+
+                <!-- ── SECTION: Today ── -->
+                <section id="section-today" class="dash-section">
+                    <div class="dash-panel">
+                        <div class="dash-panel-title"><span>🎂</span> Cumpleañeros de hoy</div>
+                        <div id="today-list" class="today-list">
+                            <div class="empty-state">Cargando...</div>
+                        </div>
+                        <div id="today-msg" class="msg"></div>
+                    </div>
                 </section>
 
                 <!-- ── SECTION: All Birthdays ── -->
@@ -746,11 +900,12 @@
 
         // ─── Navigation ───────────────────────────────────────────────────────────────
         const sectionTitles = {
-            overview: { icon: '📊', label: 'Resumen' },
-            birthdays: { icon: '🎂', label: 'Todos los cumpleaños' },
-            upcoming: { icon: '📅', label: 'Próximos 7 días' },
-            sounds: { icon: '🎵', label: 'Sonidos' },
-            settings: { icon: '⚙️', label: 'Ajustes' },
+            overview:   { icon: '📊', label: 'Resumen' },
+            today:      { icon: '🎉', label: 'Hoy' },
+            birthdays:  { icon: '🎂', label: 'Todos los cumpleaños' },
+            upcoming:   { icon: '📅', label: 'Próximos 7 días' },
+            sounds:     { icon: '🎵', label: 'Sonidos' },
+            settings:   { icon: '⚙️', label: 'Ajustes' },
         };
 
         document.querySelectorAll('.dash-nav-item').forEach(item => {
@@ -768,6 +923,9 @@
 
                 // Show/hide cron button only on overview
                 document.getElementById('btn-run-cron').style.display = section === 'overview' ? '' : 'none';
+
+                // Cargar sección Hoy al navegar a ella
+                if (section === 'today') loadTodaySection();
             });
         });
 
@@ -916,6 +1074,88 @@
             localStorage.removeItem('bday_dash_key');
             window.location.reload();
         });
+
+        // ─── Today Section ─────────────────────────────────────────────────────────────
+        async function loadTodaySection() {
+            const list = document.getElementById('today-list');
+            list.innerHTML = '<div class="empty-state">Cargando...</div>';
+
+            const r = await dashApi('GET', '/api/today');
+            if (!r.ok) {
+                list.innerHTML = `<div class="empty-state">Error al cargar los datos.</div>`;
+                return;
+            }
+
+            const { users, sounds, month, day } = r.data;
+            const MONTHS_SHORT = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+            if (!users || users.length === 0) {
+                list.innerHTML = `<div class="empty-state" style="padding:32px 0;">
+                    🎈 Nadie cumple años hoy (${day} de ${MONTHS_ES[month] || MONTHS_SHORT[month]})
+                </div>`;
+                return;
+            }
+
+            list.innerHTML = users.map(u => {
+                const initials = (u.display_name || '?').slice(0, 2).toUpperCase();
+                const avatarHtml = u.profile_image
+                    ? `<img src="${escHtml(u.profile_image)}" alt="" class="today-card-avatar" onerror="this.style.display='none'">`
+                    : `<div class="today-card-avatar" style="background:linear-gradient(135deg,var(--twitch),var(--yocapi));display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;color:#fff;">${escHtml(initials)}</div>`;
+
+                const alertedHtml = u.has_alerted
+                    ? `<span class="today-card-alerted yes">✓ Alerta lanzada</span>`
+                    : `<span class="today-card-alerted no">Sin alertas hoy</span>`;
+
+                // Default selected sound: the one the user chose, or first available
+                const defaultSound = u.selected_sound || (sounds[0]?.file || '');
+                const selectOpts = sounds.map(s =>
+                    `<option value="${escHtml(s.file)}" ${s.file === defaultSound ? 'selected' : ''}>${escHtml(s.name)}</option>`
+                ).join('');
+
+                const soundBadge = u.sound_name
+                    ? `<span class="today-card-sound">🎵 ${escHtml(u.sound_name)}</span>`
+                    : `<span class="today-card-sound" style="opacity:0.5;">Sin sonido fijo</span>`;
+
+                return `<div class="today-card" data-id="${escHtml(u.twitch_id)}">
+                    ${avatarHtml}
+                    <div class="today-card-info">
+                        <div class="today-card-name">${escHtml(u.display_name)}</div>
+                        <div class="today-card-meta">
+                            ${soundBadge}
+                            ${alertedHtml}
+                        </div>
+                    </div>
+                    <div class="today-card-actions">
+                        <select class="today-sound-select" data-id="${escHtml(u.twitch_id)}">${selectOpts}</select>
+                        <button class="today-alert-btn" data-id="${escHtml(u.twitch_id)}">▶ Lanzar alerta</button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Wire alert buttons
+            list.querySelectorAll('.today-alert-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const twitch_id = btn.dataset.id;
+                    const sel = list.querySelector(`.today-sound-select[data-id="${twitch_id}"]`);
+                    const sound_file = sel ? sel.value : '';
+                    if (!sound_file) { showMsg('today-msg', '✗ Selecciona un sonido', 'err'); return; }
+
+                    btn.disabled = true;
+                    btn.textContent = '⏳';
+
+                    const res = await dashApi('POST', '/api/today/alert', { twitch_id, sound_file });
+                    if (res.ok) {
+                        showMsg('today-msg', '✓ Alerta enviada al overlay', 'ok');
+                        // Refrescar la tarjeta para actualizar el indicador de alerta
+                        setTimeout(loadTodaySection, 800);
+                    } else {
+                        showMsg('today-msg', '✗ ' + (res.data?.error || 'Error desconocido'), 'err');
+                        btn.disabled = false;
+                        btn.textContent = '▶ Lanzar alerta';
+                    }
+                });
+            });
+        }
 
         // ─── All Birthdays (server-side paginated) ────────────────────────────────────
         let totalBdays = 0;
