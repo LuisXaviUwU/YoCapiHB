@@ -652,6 +652,9 @@
             <div class="dash-nav-item" data-section="birthdays">
                 <span class="nav-icon">🎂</span> Todos los cumpleaños
             </div>
+            <div class="dash-nav-item" data-section="history">
+                <span class="nav-icon">📜</span> Historial
+            </div>
             <div class="dash-nav-item" data-section="upcoming">
                 <span class="nav-icon">📅</span> Próximos 7 días
             </div>
@@ -751,9 +754,24 @@
                 <section id="section-birthdays" class="dash-section">
                     <div class="dash-panel">
                         <div class="dash-panel-title"><span>🎂</span> Todos los cumpleaños registrados</div>
-                        <div class="bday-controls">
+                        <div class="bday-controls" style="display:flex; gap:10px; margin-bottom:15px;">
                             <input type="text" id="bday-search" class="bday-search"
-                                placeholder="🔍  Buscar por nombre...">
+                                placeholder="🔍  Buscar por nombre..." style="flex:1;">
+                            <select id="bday-month-filter" class="setup-input" style="width:150px; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:8px; border-radius:var(--radius-sm);">
+                                <option value="0">Todos los meses</option>
+                                <option value="1">Enero</option>
+                                <option value="2">Febrero</option>
+                                <option value="3">Marzo</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Mayo</option>
+                                <option value="6">Junio</option>
+                                <option value="7">Julio</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Septiembre</option>
+                                <option value="10">Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
                         </div>
                         <div id="bday-table-wrap">
                             <table class="bday-table">
@@ -775,6 +793,30 @@
                         <div class="pagination">
                             <div class="pagination-info" id="bday-page-info">—</div>
                             <div class="pagination-btns" id="bday-pagination"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── SECTION: History ── -->
+                <section id="section-history" class="dash-section">
+                    <div class="dash-panel">
+                        <div class="dash-panel-title"><span>📜</span> Historial de Alertas (Últimos 100)</div>
+                        <div id="history-table-wrap">
+                            <table class="bday-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha y Hora</th>
+                                        <th>Usuario</th>
+                                        <th>Sonido Lanzado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-table-body">
+                                    <tr>
+                                        <td colspan="3" style="text-align:center; color:var(--text-dim); padding:32px;">
+                                            Cargando historial...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </section>
@@ -965,9 +1007,12 @@
             today:      { icon: '🎉', label: 'Hoy' },
             birthdays:  { icon: '🎂', label: 'Todos los cumpleaños' },
             upcoming:   { icon: '📅', label: 'Próximos 7 días' },
+            history:    { icon: '📜', label: 'Historial' },
             sounds:     { icon: '🎵', label: 'Sonidos' },
             settings:   { icon: '⚙️', label: 'Ajustes' },
         };
+
+        let todayRefreshInterval = null;
 
         document.querySelectorAll('.dash-nav-item').forEach(item => {
             item.addEventListener('click', () => {
@@ -985,8 +1030,18 @@
                 // Show/hide cron button only on overview
                 document.getElementById('btn-run-cron').style.display = section === 'overview' ? '' : 'none';
 
-                // Cargar sección Hoy al navegar a ella
-                if (section === 'today') loadTodaySection();
+                // Limpiar auto-refresh
+                if (todayRefreshInterval) {
+                    clearInterval(todayRefreshInterval);
+                    todayRefreshInterval = null;
+                }
+
+                if (section === 'today') {
+                    loadTodaySection();
+                    todayRefreshInterval = setInterval(loadTodaySection, 20000);
+                } else if (section === 'history') {
+                    loadHistorySection();
+                }
 
                 localStorage.setItem('bday_dash_tab', section);
             });
@@ -1298,17 +1353,49 @@
             });
         }
 
+        // ─── History Section ──────────────────────────────────────────────────────────
+        async function loadHistorySection() {
+            const tbody = document.getElementById('history-table-body');
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-dim); padding:32px;">Cargando...</td></tr>`;
+
+            const r = await dashApi('GET', '/api/history');
+            if (!r.ok) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--danger); padding:32px;">Error al cargar el historial.</td></tr>`;
+                return;
+            }
+
+            const { history } = r.data;
+            if (!history || history.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-dim); padding:32px;">Sin registros en el historial.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = history.map(h => {
+                const date = new Date(h.launched_at);
+                const dateStr = date.toLocaleDateString('es') + ' ' + date.toLocaleTimeString('es');
+                return `
+                <tr>
+                    <td style="color:var(--text-dim); font-size:0.85rem;">${escHtml(dateStr)}</td>
+                    <td><div class="bday-name">${escHtml(h.display_name)}</div></td>
+                    <td><span class="today-card-sound" style="margin-left:0;">🎵 ${escHtml(h.sound_file)}</span></td>
+                </tr>`;
+            }).join('');
+        }
+
         // ─── All Birthdays (server-side paginated) ────────────────────────────────────
         let totalBdays = 0;
         let totalPages = 0;
         let searchQuery = '';
+        let monthFilterVal = 0;
 
-        async function loadAllBirthdays(page, q) {
+        async function loadAllBirthdays(page, q, m) {
             page = page || 1;
             q = q !== undefined ? q : searchQuery;
+            m = m !== undefined ? m : monthFilterVal;
             searchQuery = q;
+            monthFilterVal = m;
 
-            const qs = new URLSearchParams({ page, limit: PAGE_SIZE, q }).toString();
+            const qs = new URLSearchParams({ page, limit: PAGE_SIZE, q, month: m }).toString();
             const r = await dashApi('GET', `/api/birthdays?${qs}`);
 
             if (!r.ok) {
@@ -1410,6 +1497,10 @@
         document.getElementById('bday-search').addEventListener('input', e => {
             clearTimeout(searchTimer);
             searchTimer = setTimeout(() => loadAllBirthdays(1, e.target.value.trim()), 300);
+        });
+
+        document.getElementById('bday-month-filter').addEventListener('change', e => {
+            loadAllBirthdays(1, undefined, parseInt(e.target.value));
         });
 
 
