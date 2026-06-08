@@ -719,6 +719,13 @@
                             <span class="status-dot dot-gray" id="dot-sounds"></span>
                             <span id="label-sounds" class="status-row-label">Cargando...</span>
                         </div>
+                        <div class="status-row">
+                            <span class="status-dot dot-gray" id="dot-overlay"></span>
+                            <span id="label-overlay" class="status-row-label">Cargando...</span>
+                            <div class="status-row-actions">
+                                <button id="btn-test-overlay" class="dash-btn" style="padding:5px 14px; font-size:0.76rem;">▶ Probar Overlay</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="cron-result"></div>
@@ -1045,6 +1052,25 @@
                 ? `✓ ${data.sounds.length} sonido(s) configurado(s)`
                 : '⚠ Sin sonidos de cumpleaños configurados';
 
+            const overlayCount = data.overlay_clients_count || 0;
+            const overlayOk = overlayCount > 0;
+            document.getElementById('dot-overlay').className = 'status-dot ' + (overlayOk ? 'dot-green' : 'dot-red');
+            document.getElementById('label-overlay').textContent = overlayOk
+                ? `🟢 OBS Conectado (${overlayCount} overlays)`
+                : `🔴 OBS Desconectado`;
+
+            const btnTestOverlay = document.getElementById('btn-test-overlay');
+            const newBtnTestOverlay = btnTestOverlay.cloneNode(true);
+            btnTestOverlay.parentNode.replaceChild(newBtnTestOverlay, btnTestOverlay);
+            newBtnTestOverlay.addEventListener('click', async () => {
+                const r = await dashApi('POST', '/api/overlay/test');
+                if (r.ok) {
+                    showMsg('cron-result', '✓ Alerta de prueba enviada al overlay', 'ok');
+                } else {
+                    showMsg('cron-result', '✗ Error al probar overlay', 'err');
+                }
+            });
+
             const linkAuth = document.getElementById('link-streamer-auth');
             const btnDisconnect = document.getElementById('btn-streamer-disconnect');
 
@@ -1131,6 +1157,7 @@
                     <div class="today-card-actions">
                         <select class="today-sound-select" data-id="${escHtml(u.twitch_id)}">${selectOpts}</select>
                         <button class="today-alert-btn" data-id="${escHtml(u.twitch_id)}">▶ Lanzar alerta</button>
+                        ${u.has_alerted ? `<button class="today-reset-btn" data-id="${escHtml(u.twitch_id)}" title="Reiniciar alerta" style="background:transparent; border:1px solid var(--border); color:var(--text-dim); border-radius:var(--radius-sm); padding:6px 10px; cursor:pointer;">🔄</button>` : ''}
                     </div>
                 </div>`;
             }).join('');
@@ -1155,6 +1182,25 @@
                         showMsg('today-msg', '✗ ' + (res.data?.error || 'Error desconocido'), 'err');
                         btn.disabled = false;
                         btn.textContent = '▶ Lanzar alerta';
+                    }
+                });
+            });
+
+            // Wire reset buttons
+            list.querySelectorAll('.today-reset-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const twitch_id = btn.dataset.id;
+                    if (!confirm('¿Seguro que deseas reiniciar el estado de alerta para este usuario? Podrá volver a lanzarla o podrás lanzarla tú de nuevo.')) return;
+                    btn.disabled = true;
+                    btn.textContent = '⏳';
+                    const res = await dashApi('POST', '/api/today/reset', { twitch_id });
+                    if (res.ok) {
+                        showMsg('today-msg', '✓ Estado de alerta reiniciado', 'ok');
+                        setTimeout(loadTodaySection, 800);
+                    } else {
+                        showMsg('today-msg', '✗ ' + (res.data?.error || 'Error al reiniciar'), 'err');
+                        btn.disabled = false;
+                        btn.textContent = '🔄';
                     }
                 });
             });
