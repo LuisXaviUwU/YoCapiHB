@@ -202,7 +202,7 @@ function handleError(errorCode) {
         invalid_state:    'La sesión de autorización expiró. Intenta de nuevo.',
     };
 
-    if (errorCode === 'not_follower') {
+    if (errorCode.startsWith('not_follower')) {
         showState('state-not-follower');
         return;
     }
@@ -354,7 +354,7 @@ function showRegistered(me) {
     const badgeContainer = $('birthday-badge-container');
     if (badgeContainer) {
         if (isTodayBirthday) {
-            badgeContainer.innerHTML = `<div style="display:inline-block; background:linear-gradient(135deg, var(--twitch), #ff6bcb); color:#fff; font-weight:bold; padding:8px 16px; border-radius:20px; font-size:1rem; box-shadow:0 4px 15px rgba(255, 107, 203, 0.4); animation:sound-pulse 2s infinite;">🎂 ¡Feliz Cumpleaños, ${me.display_name || 'Streamer'}! 🎂</div>`;
+            badgeContainer.innerHTML = `<div style="display:inline-block; background:linear-gradient(135deg, var(--twitch), #ff6bcb); color:#fff; font-weight:bold; padding:8px 16px; border-radius:20px; font-size:1rem; box-shadow:0 4px 15px rgba(255, 107, 203, 0.4); animation:sound-pulse 2s infinite;">🎂 ¡Feliz Cumpleaños, ${me.display_name || 'Cumpleañero'}! 🎂</div>`;
             badgeContainer.style.display = 'block';
         } else {
             badgeContainer.style.display = 'none';
@@ -363,10 +363,7 @@ function showRegistered(me) {
 
     const cdNote = $('global-cooldown-note');
     if (cdNote) {
-        cdNote.style.display = isTodayBirthday ? 'block' : 'none';
-        if (isTodayBirthday) {
-            cdNote.innerHTML = `✨ ¡Feliz cumpleaños! 🎉<br><span style="font-size:0.8rem; font-weight:400; color:var(--text-dim);">Puedes lanzar tu sonido de alerta al stream (1 sola vez).</span>`;
-        }
+        cdNote.style.display = 'none'; // Se oculta inicialmente, se mostrará tras el éxito de la alerta
     }
 
     renderSoundsPreview(sounds || [], birthday, isTodayBirthday, me.obs_connected);
@@ -403,6 +400,24 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
         return;
     }
     section.style.display = 'block';
+    
+    // Si OBS está desconectado, mostrar nota general arriba de los botones
+    const obsNoteId = 'obs-connection-note';
+    let obsNoteEl = $(obsNoteId);
+    if (!obsNoteEl) {
+        obsNoteEl = document.createElement('div');
+        obsNoteEl.id = obsNoteId;
+        section.insertBefore(obsNoteEl, list);
+    }
+    
+    if (isTodayBirthday && !obsConnected) {
+        obsNoteEl.innerHTML = `⚠️ OBS no está conectado. No podrás lanzar tu alerta.<br><span style="font-size:0.85em; font-weight:normal;">Cuando yocapi conecte OBS, recarga esta página o espera unos segundos.</span>`;
+        obsNoteEl.style.cssText = `text-align:center; padding:10px; background:rgba(255,107,107,0.1); border:1px solid rgba(255,107,107,0.3); border-radius:8px; color:var(--danger); font-weight:bold; font-size:0.9rem; margin-bottom:15px;`;
+        obsNoteEl.style.display = 'block';
+    } else {
+        obsNoteEl.style.display = 'none';
+    }
+    
     list.innerHTML = '';
 
     const playedSounds = birthday && birthday.played_sounds ? birthday.played_sounds : [];
@@ -526,6 +541,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                     
                     const cdNote = $('global-cooldown-note');
                     if (cdNote) {
+                        cdNote.style.display = 'block';
                         cdNote.innerHTML = `✅ Tu alerta fue enviada al stream. Si no sonó, yocapi puede repetirla desde el dashboard.`;
                     }
                 } else {
