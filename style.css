@@ -1508,9 +1508,104 @@ body {
     animation: wave-bar var(--d, 0.8s) ease-in-out infinite var(--dl, 0s);
 }
 
+
 @keyframes wave-bar {
     0%, 100% { transform: scaleY(0.4); }
     50% { transform: scaleY(1); }
+}
+
+/* ── Personalization Panel ──────────────────────────────────────────── */
+.personalize-panel {
+    width: 100%;
+    margin-top: 12px;
+    padding: 14px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pers-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.pers-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+}
+
+.msg-char-counter {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-align: right;
+    transition: color 0.2s;
+}
+
+/* Emoji picker */
+.emoji-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.emoji-opt {
+    font-size: 1.25rem;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.emoji-opt:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+}
+
+.emoji-opt.selected {
+    background: rgba(145, 70, 255, 0.2);
+    border-color: rgba(145, 70, 255, 0.6);
+    box-shadow: 0 0 8px rgba(145, 70, 255, 0.3);
+}
+
+/* Theme color swatch picker */
+.theme-picker {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.theme-opt {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    padding: 0;
+}
+
+.theme-opt:hover {
+    transform: scale(1.2);
+}
+
+.theme-opt.selected {
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px currentColor;
 }
 
 /* ── Dashboard Sound Cards ─────────────────────────────────────────── */

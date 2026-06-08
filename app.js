@@ -518,26 +518,58 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                 </div>
             </div>
             ${canLaunch ? `
-                <div style="margin-left:auto; margin-top:5px; display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+                <div class="personalize-panel">
                     ${obsConnected && !isPlayed ? `
-                        <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-                            <input type="text" class="custom-alert-msg" maxlength="80" 
-                                placeholder="Mensaje al stream (opcional)" 
-                                style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: #fff; width: 240px; font-size: 0.85rem;">
-                            <span class="msg-char-counter" style="font-size:0.7rem; color:var(--text-dim);">0 / 80</span>
+                    <div class="pers-row">
+                        <label class="pers-label">💬 Mensaje</label>
+                        <input type="text" class="custom-alert-msg" maxlength="80"
+                            placeholder="Escribe algo especial (opcional)"
+                            style="width:100%; padding:7px 10px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.25); color:#fff; font-size:0.85rem; font-family:inherit;">
+                        <span class="msg-char-counter">0 / 80</span>
+                    </div>
+
+                    <div class="pers-row">
+                        <label class="pers-label">✨ Emoji</label>
+                        <div class="emoji-picker">
+                            ${['🎉','🎂','🎈','⭐','🦄','🔥','💜','🌸','🌟','👑'].map((em, i) =>
+                                `<button class="emoji-opt ${i===0?'selected':''}" data-emoji="${em}">${em}</button>`
+                            ).join('')}
                         </div>
+                    </div>
+
+                    <div class="pers-row">
+                        <label class="pers-label">🎨 Color</label>
+                        <div class="theme-picker">
+                            ${[
+                                {id:'purple',color:'#9146ff',label:'Morado'},
+                                {id:'pink',  color:'#ff6bcb',label:'Rosa'},
+                                {id:'gold',  color:'#f7d046',label:'Dorado'},
+                                {id:'blue',  color:'#4fc3f7',label:'Azul'},
+                                {id:'green', color:'#3ddc84',label:'Verde'},
+                                {id:'red',   color:'#ff5c5c',label:'Rojo'},
+                            ].map((t, i) =>
+                                `<button class="theme-opt ${i===0?'selected':''}" data-theme="${t.id}" data-color="${t.color}" title="${t.label}"
+                                    style="background:${t.color};"></button>`
+                            ).join('')}
+                        </div>
+                    </div>
+
+                    <input type="hidden" class="selected-emoji" value="🎉">
+                    <input type="hidden" class="selected-theme" value="purple">
                     ` : ''}
+
                     ${obsConnected ? `
-                    <button class="btn-launch-sound" data-file="${sound.file}" 
-                            style="background: ${isPlayed ? 'rgba(255,255,255,0.1)' : 'var(--twitch)'}; 
-                                   color: ${isPlayed ? '#888' : '#fff'};
-                                   border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: ${isPlayed ? 'not-allowed' : 'pointer'};
-                                   transition: all 0.2s;" ${isPlayed ? 'disabled' : ''}>
-                        ${isPlayed ? '✅ Ya lanzado' : '🚀 Lanzar al stream'}
+                    <button class="btn-launch-sound" data-file="${sound.file}"
+                        style="background:${isPlayed?'rgba(255,255,255,0.08)':'var(--twitch)'};
+                               color:${isPlayed?'#666':'#fff'};
+                               border:none; padding:10px; border-radius:8px; font-weight:700;
+                               cursor:${isPlayed?'not-allowed':'pointer'}; width:100%; margin-top:4px;
+                               font-size:0.9rem; transition:all 0.2s;" ${isPlayed?'disabled':''}>
+                        ${isPlayed ? '\u2705 Ya lanzado hoy' : '\ud83d\ude80 Lanzar al stream'}
                     </button>
                     ` : `
-                    <button class="btn-launch-sound" disabled
-                            style="background: rgba(255,255,255,0.05); color: #888; border: 1px solid var(--border); padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: not-allowed;">
+                    <button disabled style="background:rgba(255,255,255,0.04); color:#666; border:1px solid var(--border);
+                        padding:10px; border-radius:8px; font-weight:600; cursor:not-allowed; width:100%; font-size:0.85rem;">
                         ⚠️ OBS no conectado (avisa a yocapi)
                     </button>
                     `}
@@ -545,47 +577,68 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
             ` : ''}
         `;
 
+        // Play preview button
         const playBtn = card.querySelector('.sound-mini-play');
         playBtn.addEventListener('click', () => {
-            if (previewPlayBtn === playBtn) {
-                stopPreviewAudio();
-                return;
-            }
+            if (previewPlayBtn === playBtn) { stopPreviewAudio(); return; }
             stopPreviewAudio();
-
             const audio = new Audio(`music/${sound.file}`);
             previewAudio = audio;
             previewPlayBtn = playBtn;
-
             playBtn.textContent = '⏸';
             playBtn.style.background = 'linear-gradient(135deg, #3ddc84, #28a865)';
             playBtn.style.boxShadow = '0 2px 10px rgba(61,220,132,0.4)';
             playBtn.style.animation = 'sound-pulse 1s ease-in-out infinite';
             card.querySelector('.sound-mini-wave').classList.add('active');
-
             audio.play().catch(() => stopPreviewAudio());
             audio.addEventListener('ended', () => stopPreviewAudio());
         });
 
-        // Wire char counter for custom message
+        // Wire char counter
         const msgInputEl = card.querySelector('.custom-alert-msg');
         const counterEl  = card.querySelector('.msg-char-counter');
         if (msgInputEl && counterEl) {
             msgInputEl.addEventListener('input', () => {
                 const len = msgInputEl.value.length;
-                counterEl.textContent = `${len}\u202f/\u202f80`;
+                counterEl.textContent = `${len} / 80`;
                 counterEl.style.color = len > 70 ? (len >= 80 ? 'var(--danger)' : '#f7d046') : 'var(--text-dim)';
             });
         }
 
+        // Wire emoji picker
+        card.querySelectorAll('.emoji-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                card.querySelectorAll('.emoji-opt').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                const hid = card.querySelector('.selected-emoji');
+                if (hid) hid.value = btn.dataset.emoji;
+            });
+        });
+
+        // Wire color theme picker
+        card.querySelectorAll('.theme-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                card.querySelectorAll('.theme-opt').forEach(b => {
+                    b.style.border = '2px solid transparent';
+                    b.style.boxShadow = 'none';
+                });
+                btn.style.border = '3px solid #fff';
+                btn.style.boxShadow = `0 0 0 2px ${btn.dataset.color}`;
+                const hid = card.querySelector('.selected-theme');
+                if (hid) hid.value = btn.dataset.theme;
+            });
+        });
+
         const launchBtn = card.querySelector('.btn-launch-sound');
         if (launchBtn && !isPlayed && obsConnected) {
             launchBtn.addEventListener('click', async () => {
+                const msgInput   = card.querySelector('.custom-alert-msg');
+                const emojiInput = card.querySelector('.selected-emoji');
+                const themeInput = card.querySelector('.selected-theme');
+                const customMsg  = msgInput  ? msgInput.value.trim() : '';
+                const selEmoji   = emojiInput ? emojiInput.value      : '🎉';
+                const selTheme   = themeInput ? themeInput.value      : 'purple';
 
-                const msgInput = card.querySelector('.custom-alert-msg');
-                let customMsg = msgInput ? msgInput.value.trim() : '';
-                
-                // Validate message BEFORE confirmation dialog
                 if (customMsg) {
                     if (customMsg.length > 80) {
                         await customAlert('El mensaje es demasiado largo (máximo 80 caracteres).');
@@ -601,21 +654,27 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                     }
                 }
 
-                const msgPreview = customMsg ? `\n\nMensaje: “${customMsg}”` : '';
+                const msgPreview = customMsg ? `\n\nMensaje: "${customMsg}"` : '';
                 const confirmed = await customConfirm(`¿Seguro que deseas lanzar tu alerta al stream ahora? Esto no se puede deshacer y solo podrás hacerlo 1 vez hoy.${msgPreview}`);
                 if (!confirmed) return;
 
                 launchBtn.disabled = true;
                 launchBtn.innerHTML = '⏳ Enviando...';
                 if (msgInput) msgInput.disabled = true;
-                
-                const r = await api('POST', '/api/birthday/alert', { sound_file: sound.file, message: customMsg });
+
+                const r = await api('POST', '/api/birthday/alert', {
+                    sound_file: sound.file,
+                    message: customMsg,
+                    emoji: selEmoji,
+                    theme: selTheme
+                });
+
                 if (r.ok) {
                     launchBtn.innerHTML = '✅ Ya lanzado';
                     launchBtn.style.background = 'rgba(255,255,255,0.1)';
                     launchBtn.style.color = '#888';
                     launchBtn.style.cursor = 'not-allowed';
-                    
+
                     const cdNote = $('global-cooldown-note');
                     if (cdNote) {
                         cdNote.style.display = 'block';
@@ -630,8 +689,8 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                 } else {
                     launchBtn.disabled = false;
                     launchBtn.innerHTML = '🚀 Lanzar al stream';
-                    const msg = r.data?.error || 'Error desconocido';
-                    await customAlert('Error: ' + msg);
+                    if (msgInput) msgInput.disabled = false;
+                    await customAlert('Error: ' + (r.data?.error || 'Error desconocido'));
                 }
             });
         }
