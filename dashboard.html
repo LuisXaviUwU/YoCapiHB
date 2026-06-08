@@ -509,8 +509,8 @@
             </div>
 
             <span class="dash-nav-label">Configuración</span>
-            <div class="dash-nav-item" data-section="rewards">
-                <span class="nav-icon">🎁</span> Recompensas
+            <div class="dash-nav-item" data-section="sounds">
+                <span class="nav-icon">🎵</span> Sonidos
             </div>
             <div class="dash-nav-item" data-section="settings">
                 <span class="nav-icon">⚙️</span> Ajustes
@@ -573,8 +573,8 @@
                             </div>
                         </div>
                         <div class="status-row">
-                            <span class="status-dot dot-gray" id="dot-rewards"></span>
-                            <span id="label-rewards" class="status-row-label">Cargando...</span>
+                            <span class="status-dot dot-gray" id="dot-sounds"></span>
+                            <span id="label-sounds" class="status-row-label">Cargando...</span>
                         </div>
                     </div>
 
@@ -623,15 +623,14 @@
                     </div>
                 </section>
 
-                <!-- ── SECTION: Rewards ── -->
-                <section id="section-rewards" class="dash-section">
+                <!-- ── SECTION: Sounds ── -->
+                <section id="section-sounds" class="dash-section">
 
-                    <!-- Sonidos de cumpleaños (Rewards) -->
+                    <!-- Sonidos de cumpleaños -->
                     <div class="dash-panel">
                         <div class="dash-panel-title"><span>🎵</span> Sonidos de cumpleaños</div>
                         <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:16px;">
-                            Configura los sonidos que se reproducirán en la vista del seguidor registrado. Puedes
-                            asignarles un nombre, elegir el audio y opcionalmente vincularlos a un ID de recompensa.
+                            Configura los sonidos que se reproducirán en la vista del seguidor registrado. Puedes asignarles un nombre y elegir el archivo de audio.
                         </p>
 
                         <div id="sound-cards-list" class="sound-cards-list"></div>
@@ -750,7 +749,7 @@
             overview: { icon: '📊', label: 'Resumen' },
             birthdays: { icon: '🎂', label: 'Todos los cumpleaños' },
             upcoming: { icon: '📅', label: 'Próximos 7 días' },
-            rewards: { icon: '🎁', label: 'Recompensas' },
+            sounds: { icon: '🎵', label: 'Sonidos' },
             settings: { icon: '⚙️', label: 'Ajustes' },
         };
 
@@ -883,8 +882,8 @@
                 ? '✓ Cuenta de Twitch autenticada'
                 : '✗ Cuenta de Twitch no autenticada';
 
-            document.getElementById('dot-rewards').className = 'status-dot ' + (rewardsOk ? 'dot-green' : 'dot-gray');
-            document.getElementById('label-rewards').textContent = rewardsOk
+            document.getElementById('dot-sounds').className = 'status-dot ' + (rewardsOk ? 'dot-green' : 'dot-gray');
+            document.getElementById('label-sounds').textContent = rewardsOk
                 ? `✓ ${data.sounds.length} sonido(s) configurado(s)`
                 : '⚠ Sin sonidos de cumpleaños configurados';
 
@@ -1092,12 +1091,7 @@
                 if (d.birthdayUsers?.length) {
                     html += `🎂 Cumpleaños hoy: ${d.birthdayUsers.join(', ')}<br>`;
                 } else {
-                    html += `Sin cumpleaños hoy — rewards desactivados<br>`;
-                }
-                if (d.rewardActions?.length) {
-                    html += d.rewardActions.map(a =>
-                        `${a.ok ? '✓' : '✗'} Reward ${a.rewardId.slice(0, 8)}... → ${a.action}`
-                    ).join('<br>');
+                    html += `Sin cumpleaños hoy<br>`;
                 }
                 html += `</div>`;
                 result.innerHTML = html;
@@ -1169,15 +1163,6 @@
                     ${audioOptions}
                 </select>
             </div>
-            <div class="sound-card-field full">
-                <label class="sound-field-label">
-                    ID del reward en Twitch
-                    <span class="sound-optional-badge">Opcional</span>
-                </label>
-                <input type="text" class="sound-field-input sound-reward-id"
-                    placeholder="Puedes dejarlo vacío si aún no tienes el ID"
-                    value="${escHtml(entry.rewardId || '')}">
-            </div>
         </div>
         <div class="sound-preview-bar ${entry.file ? '' : 'hidden'}">
             <button class="sound-play-btn" title="Vista previa">▶</button>
@@ -1230,11 +1215,6 @@
                 }
             });
 
-            // Reward ID
-            const rewardInput = card.querySelector('.sound-reward-id');
-            rewardInput.addEventListener('input', () => {
-                soundEntries[index].rewardId = rewardInput.value;
-            });
 
             // Play button
             const playBtn = card.querySelector('.sound-play-btn');
@@ -1288,7 +1268,7 @@
         }
 
         document.getElementById('sound-add-btn').addEventListener('click', () => {
-            soundEntries.push({ name: '', file: '', rewardId: '' });
+            soundEntries.push({ name: '', file: '' });
             renderSoundCards();
             // Scroll to new card
             const list = document.getElementById('sound-cards-list');
@@ -1310,9 +1290,9 @@
             renderSoundCards();
         }
 
-        // Load sounds when switching to rewards section
+        // Load sounds when switching to sounds section
         document.querySelectorAll('.dash-nav-item').forEach(item => {
-            if (item.dataset.section === 'rewards') {
+            if (item.dataset.section === 'sounds') {
                 item.addEventListener('click', () => {
                     loadSoundConfig();
                 });
