@@ -469,7 +469,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false) {
                     
                     const cdNote = $('global-cooldown-note');
                     if (cdNote) {
-                        cdNote.innerHTML = `¡Enviado! 🎉<br><span style="font-size:0.8rem; font-weight:400; color:var(--text-dim);">Debes esperar 5 minutos para lanzar otra alerta diferente.</span>`;
+                        cdNote.innerHTML = `¡Enviado! 🎉`;
                     }
                 } else {
                     launchBtn.disabled = false;
@@ -542,9 +542,9 @@ $('btn-register').addEventListener('click', async () => {
     const selectedSoundInput = document.querySelector('input[name="sound_selection"]:checked');
     const selected_sound = selectedSoundInput ? selectedSoundInput.value : null;
 
-    // Confirmación de que no se podrá cambiar en 6 meses
+    // Confirmación de registro
     const dateStr = `${day} de ${$('pick-month').options[$('pick-month').selectedIndex].text}`;
-    const confirmed = await customConfirm(`¿Confirmas que tu cumpleaños es el ${dateStr}? No podrás volver a cambiar la fecha hasta dentro de 6 meses.`);
+    const confirmed = await customConfirm(`¿Confirmas tu elección de fecha y sonido para tu cumpleaños (${dateStr})?`);
     if (!confirmed) return;
 
     $('btn-register').disabled = true;
@@ -568,19 +568,6 @@ $('btn-register').addEventListener('click', async () => {
 $('btn-change').addEventListener('click', async () => {
     const meRes = await api('GET', '/api/me');
     if (meRes.ok) {
-        const me = meRes.data;
-        if (me.birthday) {
-            let lastChanged = me.birthday.last_changed_at ? new Date(me.birthday.last_changed_at) : new Date(me.birthday.registered_at);
-            
-            if (lastChanged) {
-                const nextAllowed = new Date(lastChanged);
-                nextAllowed.setMonth(nextAllowed.getMonth() + 6);
-                if (new Date() < nextAllowed) {
-                    await customAlert(`Debes esperar 6 meses desde tu último registro o cambio. Podrás modificar tu fecha a partir del ${nextAllowed.toLocaleDateString()}.`);
-                    return;
-                }
-            }
-        }
         showRegisterForm(meRes.data);
     }
 });
