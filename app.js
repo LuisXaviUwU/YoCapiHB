@@ -578,7 +578,13 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                     const cdNote = $('global-cooldown-note');
                     if (cdNote) {
                         cdNote.style.display = 'block';
-                        cdNote.innerHTML = `✅ Tu alerta fue enviada al stream. Si no sonó, yocapi puede repetirla desde el dashboard.`;
+                        if (r.data.overlay_clients === 0) {
+                            cdNote.style.color = 'var(--danger)';
+                            cdNote.innerHTML = `⚠️ Tu alerta fue enviada al servidor, pero OBS parece haberse desconectado justo ahora. Avisa a yocapi para que la repita desde su panel.`;
+                        } else {
+                            cdNote.style.color = 'inherit';
+                            cdNote.innerHTML = `✅ Tu alerta fue enviada al stream. Si no sonó, yocapi puede repetirla desde el dashboard.`;
+                        }
                     }
                 } else {
                     launchBtn.disabled = false;
