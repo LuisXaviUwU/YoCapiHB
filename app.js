@@ -265,7 +265,7 @@ function showRegistered(birthday, sounds) {
     if (cdNote) {
         cdNote.style.display = isTodayBirthday ? 'block' : 'none';
         if (isTodayBirthday) {
-            cdNote.innerHTML = `✨ ¡Feliz cumpleaños! 🎉<br><span style="font-size:0.8rem; font-weight:400; color:var(--text-dim);">Puedes lanzar todos los sonidos al stream, 1 vez cada uno. Hay 5 min de espera entre cada alerta.</span>`;
+            cdNote.innerHTML = `✨ ¡Feliz cumpleaños! 🎉<br><span style="font-size:0.8rem; font-weight:400; color:var(--text-dim);">Puedes lanzar tu sonido de alerta al stream (1 sola vez).</span>`;
         }
     }
 
@@ -330,7 +330,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false) {
                     ).join('')}
                 </div>
             </div>
-            ${isTodayBirthday ? `
+            ${(isTodayBirthday && (!birthday.selected_sound || birthday.selected_sound === sound.file)) ? `
                 <div style="margin-left:auto; margin-top:5px;">
                     <button class="btn-launch-sound" data-file="${sound.file}" 
                             style="background: ${isPlayed ? 'rgba(255,255,255,0.1)' : 'var(--twitch)'}; 
