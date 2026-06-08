@@ -1340,9 +1340,13 @@
 
                     const res = await dashApi('POST', '/api/today/alert', { twitch_id, sound_file });
                     if (res.ok) {
-                        showMsg('today-msg', '✓ Alerta enviada al overlay', 'ok');
+                        if (res.data.overlay_clients === 0) {
+                            showMsg('today-msg', '⚠️ Enviado, pero OBS no está conectado al overlay', 'err');
+                        } else {
+                            showMsg('today-msg', '✓ Alerta enviada al overlay', 'ok');
+                        }
                         // Refrescar la tarjeta para actualizar el indicador de alerta
-                        setTimeout(loadTodaySection, 800);
+                        setTimeout(loadTodaySection, 1500);
                     } else {
                         showMsg('today-msg', '✗ ' + (res.data?.error || 'Error desconocido'), 'err');
                         btn.disabled = false;
