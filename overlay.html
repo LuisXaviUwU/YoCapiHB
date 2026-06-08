@@ -230,7 +230,7 @@
                     if (done) return;
                     done = true;
                     alertEl.classList.remove('show');
-                    setTimeout(processQueue, 800); // pausa entre alertas
+                    setTimeout(processQueue, 5000); // 5 segundos de pausa entre alertas
                 };
 
                 if (data.sound) {
