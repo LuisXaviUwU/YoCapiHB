@@ -593,6 +593,11 @@
         }
 
         .today-sound-select:focus { border-color: var(--border-glow); }
+
+        .today-sound-select option {
+            background: #1a1a1a;
+            color: #fff;
+        }
     </style>
 </head>
 
@@ -602,7 +607,7 @@
     <div class="stars" id="stars-canvas"></div>
 
     <!-- ════════════ LOGIN OVERLAY ════════════ -->
-    <div id="login-overlay" class="login-overlay">
+    <div id="login-overlay" class="login-overlay" style="display:none;">
         <div class="card card-center" style="max-width: 380px; width: 90%;">
             <div style="position:relative; width:80px; height:80px; margin-bottom:4px;">
                 <img src="img/yocapi.png" alt="yocapi_pr" width="80" height="80"
@@ -964,6 +969,8 @@
 
                 // Cargar sección Hoy al navegar a ella
                 if (section === 'today') loadTodaySection();
+
+                localStorage.setItem('bday_dash_tab', section);
             });
         });
 
@@ -977,6 +984,13 @@
                 document.getElementById('dash-app').style.display = 'flex';
                 loadDashboard(r.data);
                 loadAllBirthdays();
+                
+                const activeTab = localStorage.getItem('bday_dash_tab') || 'overview';
+                const tabElem = document.querySelector(`.dash-nav-item[data-section="${activeTab}"]`);
+                if (tabElem && activeTab !== 'overview') {
+                    tabElem.click();
+                }
+                
                 return 'ok';
             } else if (r.status === 403 && r.data?.error === 'setup_required') {
                 // Primera vez: no hay clave configurada aún
@@ -1046,17 +1060,24 @@
             attemptLogin(DASH_KEY).then(result => {
                 if (result === 'setup_required') {
                     enterSetupMode();
+                    document.getElementById('login-overlay').style.display = 'flex';
                 } else if (result !== 'ok') {
                     localStorage.removeItem('bday_dash_key');
                     DASH_KEY = '';
+                    document.getElementById('login-overlay').style.display = 'flex';
                 }
             });
         } else {
             // Sin clave guardada: verificar si el sistema requiere setup
             fetch(BACKEND_URL + '/api/dashboard', { headers: { 'ngrok-skip-browser-warning': 'true' } })
                 .then(r => r.json())
-                .then(data => { if (data.error === 'setup_required') enterSetupMode(); })
-                .catch(() => { });
+                .then(data => { 
+                    if (data.error === 'setup_required') enterSetupMode(); 
+                    document.getElementById('login-overlay').style.display = 'flex';
+                })
+                .catch(() => { 
+                    document.getElementById('login-overlay').style.display = 'flex';
+                });
         }
 
         // ─── Load dashboard summary ───────────────────────────────────────────────────
