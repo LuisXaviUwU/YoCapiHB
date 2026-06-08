@@ -808,6 +808,7 @@
                                         <th>Fecha y Hora</th>
                                         <th>Usuario</th>
                                         <th>Sonido Lanzado</th>
+                                        <th>Mensaje</th>
                                     </tr>
                                 </thead>
                                 <tbody id="history-table-body">
@@ -1373,11 +1374,15 @@
             tbody.innerHTML = history.map(h => {
                 const date = new Date(h.launched_at);
                 const dateStr = date.toLocaleDateString('es') + ' ' + date.toLocaleTimeString('es');
+                const msgCell = h.message
+                    ? `<span style="font-style:italic; color:var(--text-dim); font-size:0.85rem;">&ldquo;${escHtml(h.message)}&rdquo;</span>`
+                    : `<span style="color:var(--border); font-size:0.8rem;">—</span>`;
                 return `
                 <tr>
                     <td style="color:var(--text-dim); font-size:0.85rem;">${escHtml(dateStr)}</td>
                     <td><div class="bday-name">${escHtml(h.display_name)}</div></td>
                     <td><span class="today-card-sound" style="margin-left:0;">🎵 ${escHtml(h.sound_file)}</span></td>
+                    <td>${msgCell}</td>
                 </tr>`;
             }).join('');
         }

@@ -518,7 +518,15 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                 </div>
             </div>
             ${canLaunch ? `
-                <div style="margin-left:auto; margin-top:5px;">
+                <div style="margin-left:auto; margin-top:5px; display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+                    ${obsConnected && !isPlayed ? `
+                        <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+                            <input type="text" class="custom-alert-msg" maxlength="80" 
+                                placeholder="Mensaje al stream (opcional)" 
+                                style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: #fff; width: 240px; font-size: 0.85rem;">
+                            <span class="msg-char-counter" style="font-size:0.7rem; color:var(--text-dim);">0 / 80</span>
+                        </div>
+                    ` : ''}
                     ${obsConnected ? `
                     <button class="btn-launch-sound" data-file="${sound.file}" 
                             style="background: ${isPlayed ? 'rgba(255,255,255,0.1)' : 'var(--twitch)'}; 
@@ -559,16 +567,49 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
             audio.addEventListener('ended', () => stopPreviewAudio());
         });
 
+        // Wire char counter for custom message
+        const msgInputEl = card.querySelector('.custom-alert-msg');
+        const counterEl  = card.querySelector('.msg-char-counter');
+        if (msgInputEl && counterEl) {
+            msgInputEl.addEventListener('input', () => {
+                const len = msgInputEl.value.length;
+                counterEl.textContent = `${len}\u202f/\u202f80`;
+                counterEl.style.color = len > 70 ? (len >= 80 ? 'var(--danger)' : '#f7d046') : 'var(--text-dim)';
+            });
+        }
+
         const launchBtn = card.querySelector('.btn-launch-sound');
         if (launchBtn && !isPlayed && obsConnected) {
             launchBtn.addEventListener('click', async () => {
-                const confirmed = await customConfirm('¿Seguro que deseas lanzar tu alerta de cumpleaños al stream ahora? Esto no se puede deshacer y solo podrás hacerlo 1 vez hoy.');
+
+                const msgInput = card.querySelector('.custom-alert-msg');
+                let customMsg = msgInput ? msgInput.value.trim() : '';
+                
+                // Validate message BEFORE confirmation dialog
+                if (customMsg) {
+                    if (customMsg.length > 80) {
+                        await customAlert('El mensaje es demasiado largo (máximo 80 caracteres).');
+                        return;
+                    }
+                    if (/https?:\/\/|www\.|(?:\w+\.)+(com|net|org|me|io|tv|gl|ly|co)\b/i.test(customMsg)) {
+                        await customAlert('No se permiten enlaces en el mensaje.');
+                        return;
+                    }
+                    if (/[^\w\sñÑáéíóúÁÉÍÓÚüÜ!?¡¿.,()\-:;']/i.test(customMsg)) {
+                        await customAlert('El mensaje contiene caracteres no permitidos.');
+                        return;
+                    }
+                }
+
+                const msgPreview = customMsg ? `\n\nMensaje: “${customMsg}”` : '';
+                const confirmed = await customConfirm(`¿Seguro que deseas lanzar tu alerta al stream ahora? Esto no se puede deshacer y solo podrás hacerlo 1 vez hoy.${msgPreview}`);
                 if (!confirmed) return;
 
                 launchBtn.disabled = true;
                 launchBtn.innerHTML = '⏳ Enviando...';
+                if (msgInput) msgInput.disabled = true;
                 
-                const r = await api('POST', '/api/birthday/alert', { sound_file: sound.file });
+                const r = await api('POST', '/api/birthday/alert', { sound_file: sound.file, message: customMsg });
                 if (r.ok) {
                     launchBtn.innerHTML = '✅ Ya lanzado';
                     launchBtn.style.background = 'rgba(255,255,255,0.1)';

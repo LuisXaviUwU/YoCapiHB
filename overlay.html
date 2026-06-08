@@ -140,6 +140,18 @@
         #queue-status { top: 26px; font-size: 0.60rem; color: rgba(191,148,255,0.5); }
         body.dev-mode #status,
         body.dev-mode #queue-status { display: block; }
+
+        .alert-message {
+            font-size: 1.1rem;
+            color: #e0e0e0;
+            margin-top: 8px;
+            font-style: italic;
+            border-left: 3px solid #ff6bcb;
+            padding-left: 10px;
+            line-height: 1.3;
+            max-width: 400px;
+            word-wrap: break-word;
+        }
     </style>
 </head>
 <body>
@@ -153,6 +165,7 @@
         <div class="alert-content">
             <div class="alert-title">🎂 ¡Hoy es su cumpleaños!</div>
             <div id="alert-user" class="alert-user">Usuario</div>
+            <div id="alert-message" class="alert-message" style="display:none;"></div>
             <div id="alert-queue-badge" class="alert-queue-badge" style="display:none;"></div>
         </div>
         <div class="alert-emoji">🎉</div>
@@ -167,6 +180,7 @@
         const alertEl    = document.getElementById('birthday-alert');
         const avatarEl   = document.getElementById('alert-avatar');
         const userEl     = document.getElementById('alert-user');
+        const msgEl      = document.getElementById('alert-message');
         const queueBadge = document.getElementById('alert-queue-badge');
         const statusEl   = document.getElementById('status');
         const queueDbg   = document.getElementById('queue-status');
@@ -216,6 +230,14 @@
             const show = () => {
                 avatarEl.src      = data.avatar || '';
                 userEl.textContent = data.user || 'Cumpleañero';
+                
+                if (data.message) {
+                    msgEl.textContent = `"${data.message}"`;
+                    msgEl.style.display = 'block';
+                } else {
+                    msgEl.style.display = 'none';
+                    msgEl.textContent = '';
+                }
 
                 // Reiniciar transición CSS
                 alertEl.classList.remove('show');
