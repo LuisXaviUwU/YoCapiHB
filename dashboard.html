@@ -1108,9 +1108,12 @@
 
                 // Default selected sound: the one the user chose, or first available
                 const defaultSound = u.selected_sound || (sounds[0]?.file || '');
-                const selectOpts = sounds.map(s =>
-                    `<option value="${escHtml(s.file)}" ${s.file === defaultSound ? 'selected' : ''}>${escHtml(s.name)}</option>`
-                ).join('');
+                const selectOpts = sounds.map(s => {
+                    const isSelected = s.file === defaultSound;
+                    const isChosen = u.selected_sound === s.file;
+                    const suffix = isChosen ? ' (Elegido)' : (u.selected_sound ? ' (Override)' : '');
+                    return `<option value="${escHtml(s.file)}" ${isSelected ? 'selected' : ''}>${escHtml(s.name)}${suffix}</option>`;
+                }).join('');
 
                 const soundBadge = u.sound_name
                     ? `<span class="today-card-sound">🎵 ${escHtml(u.sound_name)}</span>`
@@ -1192,8 +1195,12 @@
                 return;
             }
 
-            const todayMonth = new Date().getMonth() + 1;
-            const todayDay = new Date().getDate();
+            const mxParts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Mexico_City',
+                month: '2-digit', day: '2-digit'
+            }).formatToParts(new Date());
+            const todayMonth = parseInt(mxParts.find(p => p.type === 'month').value);
+            const todayDay = parseInt(mxParts.find(p => p.type === 'day').value);
 
             tbody.innerHTML = list.map(u => {
                 const isToday = u.birth_month === todayMonth && u.birth_day === todayDay;
