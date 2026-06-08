@@ -284,11 +284,34 @@ function showRegistered(birthday, sounds) {
     const now = new Date();
     const mxParts = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'America/Mexico_City',
-        month: '2-digit', day: '2-digit'
+        year: 'numeric', month: '2-digit', day: '2-digit'
     }).formatToParts(now);
+    const ty = parseInt(mxParts.find(p => p.type === 'year').value);
     const todayMonth = parseInt(mxParts.find(p => p.type === 'month').value);
     const todayDay   = parseInt(mxParts.find(p => p.type === 'day').value);
     const isTodayBirthday = (birthday.month === todayMonth && birthday.day === todayDay);
+
+    const todayDate = new Date(ty, todayMonth - 1, todayDay);
+    let bdayDate = new Date(ty, birthday.month - 1, birthday.day);
+    if (bdayDate < todayDate) {
+        bdayDate = new Date(ty + 1, birthday.month - 1, birthday.day);
+    }
+    const diffTime = bdayDate - todayDate;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    const cdEl = $('reg-info-countdown');
+    if (cdEl) {
+        if (diffDays === 0) {
+            cdEl.innerHTML = '¡Es hoy! <span style="font-size:1.2em;">🎉</span>';
+            cdEl.style.color = '#3ddc84';
+        } else if (diffDays === 1) {
+            cdEl.textContent = '1 día';
+            cdEl.style.color = 'var(--twitch-lt)';
+        } else {
+            cdEl.textContent = `${diffDays} días`;
+            cdEl.style.color = 'var(--twitch-lt)';
+        }
+    }
 
     const cdNote = $('global-cooldown-note');
     if (cdNote) {
@@ -335,16 +358,52 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false) {
     list.innerHTML = '';
 
     const playedSounds = birthday && birthday.played_sounds ? birthday.played_sounds : [];
+    const selectedSound = birthday ? birthday.selected_sound : null;
 
-    sounds.forEach(sound => {
+    let orderedSounds = [];
+    if (selectedSound) {
+        const mySound = sounds.find(s => s.file === selectedSound);
+        if (mySound) {
+            mySound.isMySound = true;
+            orderedSounds.push(mySound);
+        }
+        const others = sounds.filter(s => s.file !== selectedSound);
+        orderedSounds.push(...others);
+    } else {
+        orderedSounds = [...sounds];
+    }
+
+    let isFirstOther = true;
+
+    orderedSounds.forEach(sound => {
         if (!sound.file) return;
+
+        if (!sound.isMySound && selectedSound && isFirstOther) {
+            const header = document.createElement('div');
+            header.style.cssText = 'font-size:0.75rem; color:var(--text-dim); font-weight:600; margin-top:10px; margin-bottom:5px; text-transform:uppercase; letter-spacing:1px;';
+            header.textContent = 'Otros sonidos (solo vista previa)';
+            list.appendChild(header);
+            isFirstOther = false;
+        } else if (sound.isMySound) {
+            const header = document.createElement('div');
+            header.style.cssText = 'font-size:0.85rem; color:var(--text-hi); font-weight:700; margin-bottom:5px; display:flex; align-items:center; gap:6px;';
+            header.innerHTML = '✨ Tu sonido elegido';
+            list.appendChild(header);
+        }
+
         const card = document.createElement('div');
         card.className = 'sound-mini-card';
         card.style.display = 'flex';
         card.style.alignItems = 'center';
         card.style.flexWrap = 'wrap';
 
+        if (sound.isMySound) {
+            card.style.border = '1px solid rgba(61, 220, 132, 0.4)';
+            card.style.background = 'rgba(61, 220, 132, 0.05)';
+        }
+
         const isPlayed = playedSounds.includes(sound.file);
+        const canLaunch = isTodayBirthday && sound.isMySound;
 
         card.innerHTML = `
             <div style="display:flex; align-items:center; flex:1; min-width:200px;">
@@ -359,7 +418,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false) {
                     ).join('')}
                 </div>
             </div>
-            ${(isTodayBirthday && (!birthday.selected_sound || birthday.selected_sound === sound.file)) ? `
+            ${canLaunch ? `
                 <div style="margin-left:auto; margin-top:5px;">
                     <button class="btn-launch-sound" data-file="${sound.file}" 
                             style="background: ${isPlayed ? 'rgba(255,255,255,0.1)' : 'var(--twitch)'}; 
