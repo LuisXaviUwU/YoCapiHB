@@ -280,10 +280,14 @@ function showRegistered(birthday, sounds) {
     $('reg-date-display').textContent = dateStr;
     $('reg-info-date').textContent = dateStr;
     
-    // Verificar si HOY es el cumpleaños del usuario (hora local)
+    // Verificar si HOY es el cumpleaños del usuario (hora México, igual que el backend)
     const now = new Date();
-    const todayMonth = now.getMonth() + 1;
-    const todayDay   = now.getDate();
+    const mxParts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Mexico_City',
+        month: '2-digit', day: '2-digit'
+    }).formatToParts(now);
+    const todayMonth = parseInt(mxParts.find(p => p.type === 'month').value);
+    const todayDay   = parseInt(mxParts.find(p => p.type === 'day').value);
     const isTodayBirthday = (birthday.month === todayMonth && birthday.day === todayDay);
 
     const cdNote = $('global-cooldown-note');

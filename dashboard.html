@@ -875,15 +875,15 @@
             document.getElementById('stat-week').textContent = weekCount;
 
             const streamerOk = data.streamerAuth;
-            const rewardsOk = data.sounds?.length > 0;
+            const soundsOk = data.sounds?.length > 0;
 
             document.getElementById('dot-streamer').className = 'status-dot ' + (streamerOk ? 'dot-green' : 'dot-red');
             document.getElementById('label-streamer').textContent = streamerOk
                 ? '✓ Cuenta de Twitch autenticada'
                 : '✗ Cuenta de Twitch no autenticada';
 
-            document.getElementById('dot-sounds').className = 'status-dot ' + (rewardsOk ? 'dot-green' : 'dot-gray');
-            document.getElementById('label-sounds').textContent = rewardsOk
+            document.getElementById('dot-sounds').className = 'status-dot ' + (soundsOk ? 'dot-green' : 'dot-gray');
+            document.getElementById('label-sounds').textContent = soundsOk
                 ? `✓ ${data.sounds.length} sonido(s) configurado(s)`
                 : '⚠ Sin sonidos de cumpleaños configurados';
 
@@ -1081,7 +1081,7 @@
             btn.textContent = '⏳ Revisando...';
             btn.disabled = true;
 
-            const r = await dashApi('POST', '/api/cron/check');
+            const r = await dashApi('POST', '/api/birthday/refresh');
             const result = document.getElementById('cron-result');
 
             if (r.ok) {
@@ -1115,7 +1115,7 @@
             { file: 'MBMusica.mp3', label: '🎶 Música de fondo', desc: 'Música de cumpleaños' },
         ];
 
-        let soundEntries = []; // [{ name, file, rewardId }]
+        let soundEntries = []; // [{ name, file }]
         let currentAudio = null; // Audio element currently playing
         let currentPlayBtn = null;
 
