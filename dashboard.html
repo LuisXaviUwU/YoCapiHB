@@ -800,7 +800,10 @@
                 <!-- ── SECTION: History ── -->
                 <section id="section-history" class="dash-section">
                     <div class="dash-panel">
-                        <div class="dash-panel-title"><span>📜</span> Historial de Alertas (Últimos 100)</div>
+                        <div class="dash-panel-title" style="display:flex; justify-content:space-between; align-items:center;">
+                            <span><span>📜</span> Historial de Alertas (Últimos 100)</span>
+                            <button id="btn-clear-history" class="btn-primary" style="background:var(--danger); padding:6px 12px; font-size:0.8rem; border:none; border-radius:6px; cursor:pointer;">🗑️ Borrar historial</button>
+                        </div>
                         <div id="history-table-wrap">
                             <table class="bday-table">
                                 <thead>
@@ -1385,6 +1388,24 @@
                     <td>${msgCell}</td>
                 </tr>`;
             }).join('');
+        }
+
+        const btnClearHistory = document.getElementById('btn-clear-history');
+        if (btnClearHistory) {
+            btnClearHistory.addEventListener('click', async () => {
+                if (!confirm('¿Seguro que deseas borrar TODO el historial de alertas? Esta acción no se puede deshacer.')) return;
+                
+                btnClearHistory.disabled = true;
+                btnClearHistory.textContent = 'Borrando...';
+                const r = await dashApi('DELETE', '/api/history');
+                btnClearHistory.disabled = false;
+                btnClearHistory.innerHTML = '🗑️ Borrar historial';
+                if (r.ok) {
+                    loadHistorySection();
+                } else {
+                    alert('Error al borrar historial: ' + (r.data?.error || 'Desconocido'));
+                }
+            });
         }
 
         // ─── All Birthdays (server-side paginated) ────────────────────────────────────
