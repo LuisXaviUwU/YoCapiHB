@@ -216,6 +216,33 @@ function showRegisterForm(me) {
     $('register-username').textContent = me.display_name;
     populateDays(me.birthday ? me.birthday.month : null);
     
+    let disableDate = false;
+    let nextAllowedStr = '';
+    if (me.birthday) {
+        let lastChanged = me.birthday.last_changed_at ? new Date(me.birthday.last_changed_at) : new Date(me.birthday.registered_at);
+        if (lastChanged) {
+            const nextAllowed = new Date(lastChanged);
+            nextAllowed.setMonth(nextAllowed.getMonth() + 6);
+            if (new Date() < nextAllowed) {
+                disableDate = true;
+                nextAllowedStr = nextAllowed.toLocaleDateString();
+            }
+        }
+    }
+    
+    $('pick-month').disabled = disableDate;
+    $('pick-day').disabled = disableDate;
+    
+    const dateWarning = $('date-warning-msg');
+    if (dateWarning) {
+        if (disableDate) {
+            dateWarning.innerHTML = `⚠️ La fecha está bloqueada hasta el ${nextAllowedStr}.<br>Aún así, <strong>puedes editar tu sonido</strong> libremente.`;
+            dateWarning.style.display = 'block';
+        } else {
+            dateWarning.style.display = 'none';
+        }
+    }
+
     // Render sound selection
     const soundsSection = $('register-sounds-section');
     const soundsList = $('register-sounds-list');
@@ -272,6 +299,7 @@ function showRegisterForm(me) {
         soundsSection.style.display = 'none';
     }
 
+    validateDatePicker();
     showState('state-register');
 }
 
