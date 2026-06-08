@@ -225,23 +225,48 @@ function showRegisterForm(me) {
         soundsSection.style.display = 'block';
         me.sounds.forEach((sound, idx) => {
             const isChecked = (me.birthday && me.birthday.selected_sound === sound.file) || (!me.birthday && idx === 0);
-            const label = document.createElement('label');
-            label.style.display = 'flex';
-            label.style.alignItems = 'center';
-            label.style.gap = '10px';
-            label.style.padding = '8px';
-            label.style.background = 'rgba(255,255,255,0.05)';
-            label.style.borderRadius = '8px';
-            label.style.cursor = 'pointer';
-            label.style.border = '1px solid rgba(255,255,255,0.1)';
+            const container = document.createElement('div');
+            container.className = 'sound-mini-card';
+            container.style.display = 'flex';
+            container.style.alignItems = 'center';
+            container.style.gap = '10px';
+            container.style.padding = '8px';
+            container.style.background = 'rgba(255,255,255,0.05)';
+            container.style.borderRadius = '8px';
+            container.style.border = '1px solid rgba(255,255,255,0.1)';
             
-            label.innerHTML = `
-                <input type="radio" name="sound_selection" value="${sound.file}" ${isChecked ? 'checked' : ''} style="accent-color: var(--twitch);">
-                <div style="flex:1;">
+            container.innerHTML = `
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; flex:1;">
+                    <input type="radio" name="sound_selection" value="${sound.file}" ${isChecked ? 'checked' : ''} style="accent-color: var(--twitch);">
                     <div style="font-weight:700; font-size:0.9rem;">${sound.name || sound.file.replace('.mp3','')}</div>
-                </div>
+                </label>
+                <button type="button" class="sound-mini-play" title="Escuchar vista previa">▶</button>
             `;
-            soundsList.appendChild(label);
+
+            const playBtn = container.querySelector('.sound-mini-play');
+            playBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (previewPlayBtn === playBtn) {
+                    stopPreviewAudio();
+                    return;
+                }
+                stopPreviewAudio();
+
+                const audio = new Audio(`music/${sound.file}`);
+                previewAudio = audio;
+                previewPlayBtn = playBtn;
+
+                playBtn.textContent = '⏸';
+                playBtn.style.background = 'linear-gradient(135deg, #3ddc84, #28a865)';
+                playBtn.style.boxShadow = '0 2px 10px rgba(61,220,132,0.4)';
+                playBtn.style.animation = 'sound-pulse 1s ease-in-out infinite';
+
+                audio.play().catch(() => stopPreviewAudio());
+                audio.addEventListener('ended', () => stopPreviewAudio());
+            });
+
+            soundsList.appendChild(container);
         });
     } else {
         soundsSection.style.display = 'none';
