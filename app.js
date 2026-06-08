@@ -214,7 +214,15 @@ function handleError(errorCode) {
 function showRegisterForm(me) {
     $('register-avatar').src = me.profile_image || '';
     $('register-username').textContent = me.display_name;
-    populateDays(me.birthday ? me.birthday.month : null);
+    if (me.birthday) {
+        $('pick-month').value = me.birthday.month;
+        populateDays(me.birthday.month);
+        $('pick-day').value = me.birthday.day;
+    } else {
+        $('pick-month').value = "";
+        populateDays(null);
+        $('pick-day').value = "";
+    }
     
     let disableDate = false;
     let nextAllowedStr = '';
