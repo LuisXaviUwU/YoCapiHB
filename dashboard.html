@@ -1390,7 +1390,7 @@
                     const isTomorrow = day.daysFromNow === 1;
                     const label = isToday ? '🎂 Hoy' : isTomorrow ? 'Mañana' : `En ${day.daysFromNow} días`;
                     item.innerHTML = `
-                <div class="upcoming-avatar">${user.display_name[0].toUpperCase()}</div>
+                <div class="upcoming-avatar">${escHtml(user.display_name[0].toUpperCase())}</div>
                 <div>
                     <div class="upcoming-name">${escHtml(user.display_name)}</div>
                     <div class="upcoming-date">${day.day} de ${MONTHS_ES[day.month]}</div>
@@ -1438,7 +1438,7 @@
                 let html = `<div class="msg msg-ok" style="display:block;">`;
                 html += `✓ Revisión completada — ${d.date}<br>`;
                 if (d.birthdayUsers?.length) {
-                    html += `🎂 Cumpleaños hoy: ${d.birthdayUsers.join(', ')}<br>`;
+                    html += `🎂 Cumpleaños hoy: ${d.birthdayUsers.map(u => escHtml(u)).join(', ')}<br>`;
                 } else {
                     html += `Sin cumpleaños hoy<br>`;
                 }
@@ -1516,8 +1516,8 @@
         <div class="sound-preview-bar ${entry.file ? '' : 'hidden'}">
             <button class="sound-play-btn" title="Vista previa">▶</button>
             <div class="sound-preview-info">
-                <div class="sound-preview-name">${entry.name || (AVAILABLE_SOUNDS.find(s => s.file === entry.file)?.label || '—')}</div>
-                <div class="sound-preview-file">${entry.file || ''}</div>
+                <div class="sound-preview-name">${escHtml(entry.name || (AVAILABLE_SOUNDS.find(s => s.file === entry.file)?.label || '—'))}</div>
+                <div class="sound-preview-file">${escHtml(entry.file || '')}</div>
             </div>
             <div class="sound-waveform">
                 ${[0.4, 0.7, 1, 0.6, 0.9, 0.5, 0.8, 0.6, 1, 0.7].map((h, i) =>
