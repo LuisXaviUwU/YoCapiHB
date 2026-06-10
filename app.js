@@ -592,57 +592,91 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                         style="background:${cooldownActive ? 'rgba(255,255,255,0.08)' : 'var(--twitch)'};
                                color:${cooldownActive ? '#666' : '#fff'};
                                border:none; padding:12px; border-radius:10px; font-weight:700;
-                               cursor:${cooldownActive ? 'not-allowed' : 'pointer'}; width:100%; margin-top:4px;
-                    ).join('')}
-                </div>
-                            const previewSelectedBtn = $('preview-selected-sound');
-                            const previewSelectedLabel = $('preview-selected-label');
+                               cursor:${cooldownActive ? 'not-allowed' : 'pointer'}; width:100%; margin-top:4px;">
+                        ${cooldownActive ? '⏳ En enfriamiento...' : '🚀 Lanzar al stream'}
+                    </button>
+                ` : ''}
+            ` : ''}
+        </div>
+    `;
+
+    const previewSelectedBtn = $('preview-selected-sound');
+    const previewSelectedLabel = $('preview-selected-label');
+
+    if (previewSelectedBtn) {
+        previewSelectedBtn.onclick = () => {
+            const previewSound = availableSounds.find(sound => sound.file === selectedLaunchSoundFile) || availableSounds[0];
+            if (!previewSound) return;
+            if (previewPlayBtn === previewSelectedBtn) { stopPreviewAudio(); return; }
+            stopPreviewAudio();
+
+            const audio = new Audio(`music/${previewSound.file}`);
+            previewAudio = audio;
+            previewPlayBtn = previewSelectedBtn;
+            
+            const icon = previewSelectedBtn.querySelector('.preview-selected-icon');
+            if (icon) icon.textContent = '⏸';
+            
+            previewSelectedBtn.style.background = 'rgba(145,70,255,0.12)';
+            previewSelectedBtn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.22)';
+            
+            audio.play().catch(() => stopPreviewAudio());
+            audio.addEventListener('ended', () => stopPreviewAudio());
+        };
+        if (previewSelectedLabel && selectedSoundMeta) {
+            previewSelectedLabel.textContent = `Escuchar ${selectedSoundMeta.name || selectedSoundMeta.file.replace('.mp3','')}`;
+        }
+    }
+
+    availableSounds.forEach(sound => {
+        const isPlayed = playedSounds.includes(sound.file);
+        
+        const card = document.createElement('div');
+        card.className = 'sound-mini-card';
+        card.style.display = 'flex';
+        card.style.alignItems = 'center';
+        card.style.gap = '12px';
+        card.style.padding = '10px 12px';
+        card.style.background = 'rgba(255,255,255,0.05)';
+        card.style.borderRadius = '8px';
+        card.style.border = '1px solid rgba(255,255,255,0.1)';
+
+        card.innerHTML = `
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:700; font-size:0.92rem;">${sound.name || sound.file.replace('.mp3','')}</div>
+                <div style="font-size:0.76rem; color:var(--text-dim); margin-top:2px;">Vista previa del audio disponible</div>
             </div>
             <div style="font-size:0.78rem; font-weight:700; color:${isPlayed ? 'var(--danger)' : 'var(--success)'}; text-transform:uppercase; letter-spacing:0.08em; margin-left:auto;">
                 ${isPlayed ? 'Ya lanzado hoy' : 'Disponible'}
             </div>
+            <button type="button" class="sound-mini-play" title="Escuchar vista previa" ${isPlayed ? 'disabled' : ''}>▶</button>
         `;
 
         // Play preview button
         const playBtn = card.querySelector('.sound-mini-play');
         playBtn.addEventListener('click', () => {
             if (previewPlayBtn === playBtn) { stopPreviewAudio(); return; }
-                                    renderSoundsPreview(sounds, birthday, isTodayBirthday, obsConnected);
+            stopPreviewAudio();
+
             const audio = new Audio(`music/${sound.file}`);
             previewAudio = audio;
-
-                            if (previewSelectedBtn) {
-                                previewSelectedBtn.onclick = () => {
-                                    const previewSound = availableSounds.find(sound => sound.file === selectedLaunchSoundFile) || availableSounds[0];
-                                    if (!previewSound) return;
-                                    stopPreviewAudio();
-                                    const audio = new Audio(`music/${previewSound.file}`);
-                                    previewAudio = audio;
-                                    previewPlayBtn = previewSelectedBtn;
-                                    const icon = previewSelectedBtn.querySelector('.preview-selected-icon');
-                                    if (icon) icon.textContent = '⏸';
-                                    previewSelectedBtn.style.background = 'rgba(145,70,255,0.12)';
-                                    previewSelectedBtn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.22)';
-                                    audio.play().catch(() => stopPreviewAudio());
-                                    audio.addEventListener('ended', () => stopPreviewAudio());
-                                };
-                                if (previewSelectedLabel && selectedSoundMeta) {
-                                    previewSelectedLabel.textContent = `Escuchar ${selectedSoundMeta.name || selectedSoundMeta.file.replace('.mp3','')}`;
-                                }
-                            }
             previewPlayBtn = playBtn;
+
             playBtn.textContent = '⏸';
             playBtn.style.background = 'linear-gradient(135deg, #3ddc84, #28a865)';
             playBtn.style.boxShadow = '0 2px 10px rgba(61,220,132,0.4)';
             playBtn.style.animation = 'sound-pulse 1s ease-in-out infinite';
-            card.querySelector('.sound-mini-wave').classList.add('active');
+            
+            const wave = card.querySelector('.sound-mini-wave');
+            if (wave) wave.classList.add('active');
+
             audio.play().catch(() => stopPreviewAudio());
             audio.addEventListener('ended', () => stopPreviewAudio());
         });
 
         // Wire char counter
         if (isPlayed) {
-            card.querySelector('.sound-mini-play').disabled = true;
+            playBtn.disabled = true;
         }
 
         list.appendChild(card);
