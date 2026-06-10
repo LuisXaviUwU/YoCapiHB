@@ -4,6 +4,7 @@
 
 // ─── Estado ──────────────────────────────────────────────────────────────────
 let currentSession = null;
+let selectedLaunchSoundFile = null;
 const BIRTHDAY_ALERT_COOLDOWN_MS = 30_000;
 let cooldownRefreshTimer = null;
 
@@ -462,6 +463,14 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
         return;
     }
     section.style.display = 'block';
+
+    let controlPanel = $('launch-control-panel');
+    if (!controlPanel) {
+        controlPanel = document.createElement('div');
+        controlPanel.id = 'launch-control-panel';
+        controlPanel.style.cssText = 'margin-bottom:14px; padding:14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.03);';
+        section.insertBefore(controlPanel, list);
+    }
     
     // Si OBS está desconectado, mostrar nota general arriba de los botones
     const obsNoteId = 'obs-connection-note';
@@ -487,6 +496,101 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
     const cooldownRemaining = lastAlertTime ? Math.max(0, (lastAlertTime + BIRTHDAY_ALERT_COOLDOWN_MS) - Date.now()) : 0;
     const cooldownActive = isTodayBirthday && cooldownRemaining > 0;
 
+    const availableSounds = sounds.filter(sound => sound && sound.file);
+    if (!availableSounds.length) {
+        controlPanel.innerHTML = '';
+        list.innerHTML = '';
+        return;
+    }
+
+    const playableSounds = availableSounds.filter(sound => !playedSounds.includes(sound.file));
+    if (!selectedLaunchSoundFile || playedSounds.includes(selectedLaunchSoundFile) || !availableSounds.some(sound => sound.file === selectedLaunchSoundFile)) {
+        selectedLaunchSoundFile = (playableSounds[0] || availableSounds[0]).file;
+    }
+
+    const selectorOptions = availableSounds.map(sound => {
+        const isPlayed = playedSounds.includes(sound.file);
+        const label = `${sound.name || sound.file.replace('.mp3','')}${isPlayed ? ' (ya lanzado hoy)' : ''}`;
+        return `<option value="${sound.file}" ${sound.file === selectedLaunchSoundFile ? 'selected' : ''} ${isPlayed ? 'disabled' : ''}>${label}</option>`;
+    }).join('');
+
+    controlPanel.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim);">
+                Elegir audio a lanzar
+            </div>
+            <div style="display:grid; gap:10px; grid-template-columns:minmax(0, 1fr);">
+                <label style="display:flex; flex-direction:column; gap:8px;">
+                    <span style="font-size:0.78rem; font-weight:700; color:var(--text-dim);">Audio</span>
+                    <select id="launch-sound-select" style="width:100%; padding:12px 14px; background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; color:var(--text-hi); font-family:inherit; font-size:0.96rem; outline:none;">
+                        ${selectorOptions}
+                    </select>
+                </label>
+                ${obsConnected && isTodayBirthday && !cooldownActive ? `
+                <div class="pers-row">
+                    <label class="pers-label">💬 Mensaje</label>
+                    <input type="text" class="custom-alert-msg" maxlength="80"
+                        placeholder="Escribe algo especial (opcional)"
+                        style="width:100%; padding:7px 10px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.25); color:#fff; font-size:0.85rem; font-family:inherit;">
+                    <span class="msg-char-counter">0 / 80</span>
+                </div>
+
+                <div class="pers-row">
+                    <label class="pers-label">✨ Emoji</label>
+                    <div class="emoji-picker">
+                        ${['🎉','🎂','🎈','⭐','🦄','🔥','💜','🌸','🌟','👑'].map((em, i) =>
+                            `<button class="emoji-opt ${i===0?'selected':''}" data-emoji="${em}">${em}</button>`
+                        ).join('')}
+                    </div>
+                </div>
+
+                <div class="pers-row">
+                    <label class="pers-label">🎨 Color</label>
+                    <div class="theme-picker">
+                        ${[
+                            {id:'purple',color:'#9146ff',label:'Morado'},
+                            {id:'pink',  color:'#ff6bcb',label:'Rosa'},
+                            {id:'gold',  color:'#f7d046',label:'Dorado'},
+                            {id:'blue',  color:'#4fc3f7',label:'Azul'},
+                            {id:'green', color:'#3ddc84',label:'Verde'},
+                            {id:'red',   color:'#ff5c5c',label:'Rojo'},
+                        ].map((t, i) =>
+                            `<button class="theme-opt ${i===0?'selected':''}" data-theme="${t.id}" data-color="${t.color}" title="${t.label}"
+                                style="background:${t.color};"></button>`
+                        ).join('')}
+                    </div>
+                </div>
+
+                <input type="hidden" class="selected-emoji" value="🎉">
+                <input type="hidden" class="selected-theme" value="purple">
+                ` : ''}
+            </div>
+
+            ${isTodayBirthday ? `
+                ${obsConnected ? `
+                    <button class="btn-launch-sound" id="launch-selected-sound"
+                        style="background:${cooldownActive ? 'rgba(255,255,255,0.08)' : 'var(--twitch)'};
+                               color:${cooldownActive ? '#666' : '#fff'};
+                               border:none; padding:12px; border-radius:10px; font-weight:700;
+                               cursor:${cooldownActive ? 'not-allowed' : 'pointer'}; width:100%; margin-top:4px;
+                               font-size:0.95rem; transition:all 0.2s;" ${cooldownActive ? 'disabled' : ''}>
+                        ${cooldownActive ? `⏳ Espera ${formatCooldown(cooldownRemaining)}` : '🚀 Lanzar al stream'}
+                    </button>
+                ` : `
+                    <button disabled style="background:rgba(255,255,255,0.04); color:#666; border:1px solid var(--border);
+                        padding:10px; border-radius:8px; font-weight:600; cursor:not-allowed; width:100%; font-size:0.85rem;">
+                        ⚠️ OBS no conectado (avisa a yocapi)
+                    </button>
+                `}
+            ` : `
+                <button disabled style="background:rgba(255,255,255,0.04); color:#666; border:1px solid var(--border);
+                    padding:10px; border-radius:8px; font-weight:600; cursor:not-allowed; width:100%; font-size:0.85rem;">
+                    El día de tu cumpleaños podrás lanzar uno de tus sonidos
+                </button>
+            `}
+        </div>
+    `;
+
     if (cdNote) {
         if (cooldownActive) {
             cdNote.style.display = 'block';
@@ -510,14 +614,12 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
         card.style.display = 'flex';
         card.style.alignItems = 'center';
         card.style.flexWrap = 'wrap';
+        card.style.justifyContent = 'space-between';
 
         const isPlayed = playedSounds.includes(sound.file);
-        const canLaunch = isTodayBirthday && obsConnected && !cooldownActive && !isPlayed;
-        const launchLabel = isPlayed
-            ? '✅ Ya lanzado hoy'
-            : cooldownActive
-                ? `⏳ Espera ${formatCooldown(cooldownRemaining)}`
-                : '🚀 Lanzar al stream';
+        if (isPlayed) {
+            card.style.opacity = '0.72';
+        }
 
         card.innerHTML = `
             <div style="display:flex; align-items:center; flex:1; min-width:200px;">
@@ -532,71 +634,9 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                     ).join('')}
                 </div>
             </div>
-            ${isTodayBirthday ? `
-                <div class="personalize-panel">
-                    ${obsConnected && !isPlayed ? `
-                    <div class="pers-row">
-                        <label class="pers-label">💬 Mensaje</label>
-                        <input type="text" class="custom-alert-msg" maxlength="80"
-                            placeholder="Escribe algo especial (opcional)"
-                            style="width:100%; padding:7px 10px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.25); color:#fff; font-size:0.85rem; font-family:inherit;">
-                        <span class="msg-char-counter">0 / 80</span>
-                    </div>
-
-                    <div class="pers-row">
-                        <label class="pers-label">✨ Emoji</label>
-                        <div class="emoji-picker">
-                            ${['🎉','🎂','🎈','⭐','🦄','🔥','💜','🌸','🌟','👑'].map((em, i) =>
-                                `<button class="emoji-opt ${i===0?'selected':''}" data-emoji="${em}">${em}</button>`
-                            ).join('')}
-                        </div>
-                    </div>
-
-                    <div class="pers-row">
-                        <label class="pers-label">🎨 Color</label>
-                        <div class="theme-picker">
-                            ${[
-                                {id:'purple',color:'#9146ff',label:'Morado'},
-                                {id:'pink',  color:'#ff6bcb',label:'Rosa'},
-                                {id:'gold',  color:'#f7d046',label:'Dorado'},
-                                {id:'blue',  color:'#4fc3f7',label:'Azul'},
-                                {id:'green', color:'#3ddc84',label:'Verde'},
-                                {id:'red',   color:'#ff5c5c',label:'Rojo'},
-                            ].map((t, i) =>
-                                `<button class="theme-opt ${i===0?'selected':''}" data-theme="${t.id}" data-color="${t.color}" title="${t.label}"
-                                    style="background:${t.color};"></button>`
-                            ).join('')}
-                        </div>
-                    </div>
-
-                    <input type="hidden" class="selected-emoji" value="🎉">
-                    <input type="hidden" class="selected-theme" value="purple">
-                    ` : ''}
-
-                    ${obsConnected ? `
-                    <button class="btn-launch-sound" data-file="${sound.file}"
-                        style="background:${canLaunch ? 'var(--twitch)' : 'rgba(255,255,255,0.08)'};
-                               color:${canLaunch ? '#fff' : '#666'};
-                               border:none; padding:10px; border-radius:8px; font-weight:700;
-                               cursor:${canLaunch ? 'pointer' : 'not-allowed'}; width:100%; margin-top:4px;
-                               font-size:0.9rem; transition:all 0.2s;" ${canLaunch ? '' : 'disabled'}>
-                        ${launchLabel}
-                    </button>
-                    ` : `
-                    <button disabled style="background:rgba(255,255,255,0.04); color:#666; border:1px solid var(--border);
-                        padding:10px; border-radius:8px; font-weight:600; cursor:not-allowed; width:100%; font-size:0.85rem;">
-                        ⚠️ OBS no conectado (avisa a yocapi)
-                    </button>
-                    `}
-                </div>
-            ` : `
-                <div class="personalize-panel">
-                    <button disabled style="background:rgba(255,255,255,0.04); color:#666; border:1px solid var(--border);
-                        padding:10px; border-radius:8px; font-weight:600; cursor:not-allowed; width:100%; font-size:0.85rem;">
-                        El día de tu cumpleaños podrás lanzar este sonido
-                    </button>
-                </div>
-            `}
+            <div style="font-size:0.78rem; font-weight:700; color:${isPlayed ? 'var(--danger)' : 'var(--success)'}; text-transform:uppercase; letter-spacing:0.08em; margin-left:auto;">
+                ${isPlayed ? 'Ya lanzado hoy' : 'Disponible'}
+            </div>
         `;
 
         // Play preview button
@@ -617,109 +657,120 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
         });
 
         // Wire char counter
-        const msgInputEl = card.querySelector('.custom-alert-msg');
-        const counterEl  = card.querySelector('.msg-char-counter');
-        if (msgInputEl && counterEl) {
-            msgInputEl.addEventListener('input', () => {
-                const len = msgInputEl.value.length;
-                counterEl.textContent = `${len} / 80`;
-                counterEl.style.color = len > 70 ? (len >= 80 ? 'var(--danger)' : '#f7d046') : 'var(--text-dim)';
-            });
-        }
-
-        // Wire emoji picker
-        card.querySelectorAll('.emoji-opt').forEach(btn => {
-            btn.addEventListener('click', () => {
-                card.querySelectorAll('.emoji-opt').forEach(b => b.classList.remove('selected'));
-                btn.classList.add('selected');
-                const hid = card.querySelector('.selected-emoji');
-                if (hid) hid.value = btn.dataset.emoji;
-            });
-        });
-
-        // Wire color theme picker
-        card.querySelectorAll('.theme-opt').forEach(btn => {
-            btn.addEventListener('click', () => {
-                card.querySelectorAll('.theme-opt').forEach(b => {
-                    b.style.border = '2px solid transparent';
-                    b.style.boxShadow = 'none';
-                });
-                btn.style.border = '3px solid #fff';
-                btn.style.boxShadow = `0 0 0 2px ${btn.dataset.color}`;
-                const hid = card.querySelector('.selected-theme');
-                if (hid) hid.value = btn.dataset.theme;
-            });
-        });
-
-        const launchBtn = card.querySelector('.btn-launch-sound');
-        if (launchBtn && canLaunch) {
-            launchBtn.addEventListener('click', async () => {
-                const msgInput   = card.querySelector('.custom-alert-msg');
-                const emojiInput = card.querySelector('.selected-emoji');
-                const themeInput = card.querySelector('.selected-theme');
-                const customMsg  = msgInput  ? msgInput.value.trim() : '';
-                const selEmoji   = emojiInput ? emojiInput.value      : '🎉';
-                const selTheme   = themeInput ? themeInput.value      : 'purple';
-
-                if (customMsg) {
-                    if (customMsg.length > 80) {
-                        await customAlert('El mensaje es demasiado largo (máximo 80 caracteres).');
-                        return;
-                    }
-                    if (/https?:\/\/|www\.|(?:\w+\.)+(com|net|org|me|io|tv|gl|ly|co)\b/i.test(customMsg)) {
-                        await customAlert('No se permiten enlaces en el mensaje.');
-                        return;
-                    }
-                    if (/[^\w\sñÑáéíóúÁÉÍÓÚüÜ!?¡¿.,()\-:;']/i.test(customMsg)) {
-                        await customAlert('El mensaje contiene caracteres no permitidos.');
-                        return;
-                    }
-                }
-
-                const msgPreview = customMsg ? `\n\nMensaje: "${customMsg}"` : '';
-                const confirmed = await customConfirm(`¿Seguro que deseas lanzar tu alerta al stream ahora? Esto no se puede deshacer y solo podrás hacerlo 1 vez hoy.${msgPreview}`);
-                if (!confirmed) return;
-
-                launchBtn.disabled = true;
-                launchBtn.innerHTML = '⏳ Enviando...';
-                if (msgInput) msgInput.disabled = true;
-
-                const r = await api('POST', '/api/birthday/alert', {
-                    sound_file: sound.file,
-                    message: customMsg,
-                    emoji: selEmoji,
-                    theme: selTheme
-                });
-
-                if (r.ok) {
-                    launchBtn.disabled = true;
-                    launchBtn.innerHTML = '✅ Ya lanzado';
-                    launchBtn.style.background = 'rgba(255,255,255,0.1)';
-                    launchBtn.style.color = '#888';
-                    launchBtn.style.cursor = 'not-allowed';
-
-                    const refreshedMe = await api('GET', '/api/me');
-                    if (refreshedMe.ok) {
-                        showRegistered(refreshedMe.data);
-                    }
-
-                    const cooldownNote = $('global-cooldown-note');
-                    if (cooldownNote && r.data.overlay_clients === 0) {
-                        cooldownNote.style.display = 'block';
-                        cooldownNote.style.color = 'var(--danger)';
-                        cooldownNote.textContent = `⚠️ Tu alerta fue enviada al servidor, pero OBS parece haberse desconectado justo ahora. Avisa a yocapi para que la repita desde su panel.`;
-                    }
-                } else {
-                    launchBtn.disabled = false;
-                    launchBtn.innerHTML = '🚀 Lanzar al stream';
-                    if (msgInput) msgInput.disabled = false;
-                    await customAlert('Error: ' + (r.data?.error || 'Error desconocido'));
-                }
-            });
+        if (isPlayed) {
+            card.querySelector('.sound-mini-play').disabled = true;
         }
 
         list.appendChild(card);
     });
+
+    const selectedSoundSelect = $('launch-sound-select');
+    const msgInput = controlPanel.querySelector('.custom-alert-msg');
+    const counterEl = controlPanel.querySelector('.msg-char-counter');
+    const emojiButtons = controlPanel.querySelectorAll('.emoji-opt');
+    const themeButtons = controlPanel.querySelectorAll('.theme-opt');
+    const launchBtn = $('launch-selected-sound');
+
+    if (selectedSoundSelect) {
+        selectedSoundSelect.value = selectedLaunchSoundFile;
+        selectedSoundSelect.onchange = () => {
+            selectedLaunchSoundFile = selectedSoundSelect.value;
+        };
+    }
+
+    if (msgInput && counterEl) {
+        msgInput.oninput = () => {
+            const len = msgInput.value.length;
+            counterEl.textContent = `${len} / 80`;
+            counterEl.style.color = len > 70 ? (len >= 80 ? 'var(--danger)' : '#f7d046') : 'var(--text-dim)';
+        };
+    }
+
+    emojiButtons.forEach(btn => {
+        btn.onclick = () => {
+            emojiButtons.forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            const hid = controlPanel.querySelector('.selected-emoji');
+            if (hid) hid.value = btn.dataset.emoji;
+        };
+    });
+
+    themeButtons.forEach(btn => {
+        btn.onclick = () => {
+            themeButtons.forEach(b => {
+                b.style.border = '2px solid transparent';
+                b.style.boxShadow = 'none';
+            });
+            btn.style.border = '3px solid #fff';
+            btn.style.boxShadow = `0 0 0 2px ${btn.dataset.color}`;
+            const hid = controlPanel.querySelector('.selected-theme');
+            if (hid) hid.value = btn.dataset.theme;
+        };
+    });
+
+    if (launchBtn && isTodayBirthday && obsConnected && !cooldownActive) {
+        launchBtn.onclick = async () => {
+            const soundFile = selectedSoundSelect ? selectedSoundSelect.value : selectedLaunchSoundFile;
+            if (!soundFile) return;
+
+            const customMsg = msgInput ? msgInput.value.trim() : '';
+            const emojiInput = controlPanel.querySelector('.selected-emoji');
+            const themeInput = controlPanel.querySelector('.selected-theme');
+            const selEmoji = emojiInput ? emojiInput.value : '🎉';
+            const selTheme = themeInput ? themeInput.value : 'purple';
+
+            if (customMsg) {
+                if (customMsg.length > 80) {
+                    await customAlert('El mensaje es demasiado largo (máximo 80 caracteres).');
+                    return;
+                }
+                if (/https?:\/\/|www\.|(?:\w+\.)+(com|net|org|me|io|tv|gl|ly|co)\b/i.test(customMsg)) {
+                    await customAlert('No se permiten enlaces en el mensaje.');
+                    return;
+                }
+                if (/[^\w\sñÑáéíóúÁÉÍÓÚüÜ!?¡¿.,()\-:;']/i.test(customMsg)) {
+                    await customAlert('El mensaje contiene caracteres no permitidos.');
+                    return;
+                }
+            }
+
+            const soundMeta = availableSounds.find(sound => sound.file === soundFile);
+            const msgPreview = customMsg ? `\n\nMensaje: "${customMsg}"` : '';
+            const confirmed = await customConfirm(`¿Seguro que deseas lanzar "${soundMeta?.name || soundFile}" al stream ahora? Esto no se puede deshacer y solo podrás hacerlo 1 vez hoy.${msgPreview}`);
+            if (!confirmed) return;
+
+            launchBtn.disabled = true;
+            launchBtn.innerHTML = '⏳ Enviando...';
+            if (msgInput) msgInput.disabled = true;
+
+            const r = await api('POST', '/api/birthday/alert', {
+                sound_file: soundFile,
+                message: customMsg,
+                emoji: selEmoji,
+                theme: selTheme
+            });
+
+            if (r.ok) {
+                selectedLaunchSoundFile = soundFile;
+                const refreshedMe = await api('GET', '/api/me');
+                if (refreshedMe.ok) {
+                    showRegistered(refreshedMe.data);
+                }
+
+                const cooldownNote = $('global-cooldown-note');
+                if (cooldownNote && r.data.overlay_clients === 0) {
+                    cooldownNote.style.display = 'block';
+                    cooldownNote.style.color = 'var(--danger)';
+                    cooldownNote.textContent = `⚠️ Tu alerta fue enviada al servidor, pero OBS parece haberse desconectado justo ahora. Avisa a yocapi para que la repita desde su panel.`;
+                }
+            } else {
+                launchBtn.disabled = false;
+                launchBtn.innerHTML = '🚀 Lanzar al stream';
+                if (msgInput) msgInput.disabled = false;
+                await customAlert('Error: ' + (r.data?.error || 'Error desconocido'));
+            }
+        };
+    }
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
