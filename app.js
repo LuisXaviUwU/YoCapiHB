@@ -377,7 +377,6 @@ function showRegistered(me) {
     $('reg-date-display').textContent = dateStr;
     $('reg-info-date').textContent = dateStr;
     
-    // Verificar si HOY es el cumpleaños del usuario (hora México, igual que el backend)
     const now = new Date();
     const mxParts = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'America/Mexico_City',
@@ -386,7 +385,11 @@ function showRegistered(me) {
     const ty = parseInt(mxParts.find(p => p.type === 'year').value);
     const todayMonth = parseInt(mxParts.find(p => p.type === 'month').value);
     const todayDay   = parseInt(mxParts.find(p => p.type === 'day').value);
-    const isTodayBirthday = (birthday.month === todayMonth && birthday.day === todayDay);
+
+    const canCelebrate = birthday.can_celebrate ?? (birthday.month === todayMonth && birthday.day === todayDay);
+    const isActualDay = birthday.is_actual_day ?? (birthday.month === todayMonth && birthday.day === todayDay);
+    const isGracePeriod = birthday.is_grace_period ?? false;
+    const graceDaysLeft = birthday.grace_days_remaining || 0;
 
     const todayDate = new Date(ty, todayMonth - 1, todayDay);
     let bdayDate = new Date(ty, birthday.month - 1, birthday.day);
@@ -398,9 +401,14 @@ function showRegistered(me) {
 
     const cdEl = $('reg-info-countdown');
     if (cdEl) {
-        if (diffDays === 0) {
+        if (canCelebrate && isActualDay) {
             cdEl.innerHTML = '¡Es hoy! <span style="font-size:1.2em;">🎉</span>';
             cdEl.style.color = '#3ddc84';
+        } else if (canCelebrate && isGracePeriod) {
+            cdEl.textContent = graceDaysLeft === 1
+                ? '1 día de gracia restante'
+                : `${graceDaysLeft} días de gracia restantes`;
+            cdEl.style.color = '#f7d046';
         } else if (diffDays === 1) {
             cdEl.textContent = '1 día';
             cdEl.style.color = 'var(--twitch-lt)';
@@ -412,8 +420,11 @@ function showRegistered(me) {
 
     const badgeContainer = $('birthday-badge-container');
     if (badgeContainer) {
-        if (isTodayBirthday) {
+        if (canCelebrate && isActualDay) {
             badgeContainer.innerHTML = `<div style="display:inline-block; background:linear-gradient(135deg, var(--twitch), #ff6bcb); color:#fff; font-weight:bold; padding:8px 16px; border-radius:20px; font-size:1rem; box-shadow:0 4px 15px rgba(255, 107, 203, 0.4); animation:sound-pulse 2s infinite;">🎂 ¡Feliz Cumpleaños, ${me.display_name || 'Cumpleañero'}! 🎂</div>`;
+            badgeContainer.style.display = 'block';
+        } else if (canCelebrate && isGracePeriod) {
+            badgeContainer.innerHTML = `<div style="display:inline-block; background:linear-gradient(135deg, rgba(247,208,70,0.25), rgba(145,70,255,0.2)); color:#fff; font-weight:bold; padding:8px 16px; border-radius:20px; font-size:0.92rem; border:1px solid rgba(247,208,70,0.4);">⏳ Período de gracia — aún puedes lanzar tu alerta (${graceDaysLeft} día${graceDaysLeft === 1 ? '' : 's'} restante${graceDaysLeft === 1 ? '' : 's'})</div>`;
             badgeContainer.style.display = 'block';
         } else {
             badgeContainer.style.display = 'none';
@@ -425,7 +436,7 @@ function showRegistered(me) {
         cdNote.style.display = 'none'; // Se oculta inicialmente, se mostrará tras el éxito de la alerta
     }
 
-    renderSoundsPreview(sounds || [], me, isTodayBirthday, me.obs_connected);
+    renderSoundsPreview(sounds || [], me, canCelebrate, me.obs_connected);
 
     showState('state-registered');
 }
@@ -458,7 +469,7 @@ function stopPreviewAudio() {
     }
 }
 
-function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConnected = false) {
+function renderSoundsPreview(sounds, me = null, canCelebrate = false, obsConnected = false) {
     const birthday = me ? me.birthday : null;
     const section = $('sounds-preview-section');
     const list    = $('sounds-preview-list');
@@ -490,7 +501,7 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
         section.insertBefore(obsNoteEl, list);
     }
     
-    if (isTodayBirthday && !obsConnected) {
+    if (canCelebrate && !obsConnected) {
         obsNoteEl.innerHTML = `⚠️ OBS no está conectado. No podrás lanzar tu alerta.<br><span style="font-size:0.85em; font-weight:normal;">Cuando yocapi conecte OBS, recarga esta página o espera unos segundos.</span>`;
         obsNoteEl.style.cssText = `text-align:center; padding:10px; background:rgba(255,107,107,0.1); border:1px solid rgba(255,107,107,0.3); border-radius:8px; color:var(--danger); font-weight:bold; font-size:0.9rem; margin-bottom:15px;`;
         obsNoteEl.style.display = 'block';
@@ -503,7 +514,7 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
     const playedSounds = birthday && birthday.played_sounds ? birthday.played_sounds : [];
     const lastAlertTime = birthday && birthday.last_alert_time ? birthday.last_alert_time : 0;
     const cooldownRemaining = lastAlertTime ? Math.max(0, (lastAlertTime + BIRTHDAY_ALERT_COOLDOWN_MS) - Date.now()) : 0;
-    const cooldownActive = isTodayBirthday && cooldownRemaining > 0;
+    const cooldownActive = canCelebrate && cooldownRemaining > 0;
 
     const availableSounds = sounds.filter(sound => sound && sound.file);
     if (!availableSounds.length) {
@@ -513,7 +524,7 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
     }
 
     const playableSounds = availableSounds.filter(sound => !playedSounds.includes(sound.file));
-    const allSoundsPlayed = isTodayBirthday && availableSounds.every(sound => playedSounds.includes(sound.file));
+    const allSoundsPlayed = canCelebrate && availableSounds.every(sound => playedSounds.includes(sound.file));
 
     if (!selectedLaunchSoundFile || playedSounds.includes(selectedLaunchSoundFile) || !availableSounds.some(sound => sound.file === selectedLaunchSoundFile)) {
         selectedLaunchSoundFile = (playableSounds[0] || availableSounds[0]).file;
@@ -521,7 +532,7 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
 
     const selectorOptions = availableSounds.map(sound => {
         const isPlayed = playedSounds.includes(sound.file);
-        const label = `${sound.name || sound.file.replace('.mp3','')}${isPlayed ? ' (ya lanzado hoy)' : ''}`;
+        const label = `${sound.name || sound.file.replace('.mp3','')}${isPlayed ? ' (ya lanzado)' : ''}`;
         return `<option value="${sound.file}" ${sound.file === selectedLaunchSoundFile ? 'selected' : ''} ${isPlayed ? 'disabled' : ''}>${label}</option>`;
     }).join('');
 
@@ -532,13 +543,18 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
         controlPanel.innerHTML = `
             <div class="all-audios-played-notice">
                 <div class="all-audios-played-icon">🎉</div>
-                <div class="all-audios-played-title">¡Listo por hoy!</div>
-                <div class="all-audios-played-text">Ya has lanzado todos los audios disponibles. No podrás enviar más alertas hasta mañana.</div>
+                <div class="all-audios-played-title">¡Listo!</div>
+                <div class="all-audios-played-text">Ya has lanzado todos los audios disponibles en este período de celebración.</div>
             </div>
         `;
     } else {
     controlPanel.innerHTML = `
         <div style="display:flex; flex-direction:column; gap:12px;">
+            ${birthday && birthday.is_grace_period ? `
+            <div style="text-align:center; padding:10px 12px; border-radius:10px; background:rgba(247,208,70,0.1); border:1px solid rgba(247,208,70,0.3); color:#f7d046; font-size:0.82rem; font-weight:600; line-height:1.4;">
+                ⏳ Período de gracia: tu cumpleaños ya pasó, pero aún tienes ${birthday.grace_days_remaining} día${birthday.grace_days_remaining === 1 ? '' : 's'} para lanzar tu alerta.
+            </div>
+            ` : ''}
             <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
                 <div style="font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim);">
                     Elegir audio a lanzar
@@ -558,7 +574,7 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
                     <span class="preview-selected-icon" style="width:32px; height:32px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--twitch), var(--twitch-dk)); color:#fff; flex-shrink:0;">▶</span>
                     <span id="preview-selected-label" style="flex:1; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Escuchar ${selectedSoundMeta.name || selectedSoundMeta.file.replace('.mp3','')}</span>
                 </button>
-                ${obsConnected && isTodayBirthday && !cooldownActive ? `
+                ${obsConnected && canCelebrate && !cooldownActive ? `
                 <div class="pers-row">
                     <label class="pers-label">💬 Mensaje</label>
                     <input type="text" class="custom-alert-msg" maxlength="80"
@@ -631,7 +647,7 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
                                 <img src="${me ? me.profile_image : ''}" alt="" class="preview-avatar">
                             </div>
                             <div class="preview-content">
-                                <div class="preview-title">🎂 ¡Hoy es su cumpleaños!</div>
+                                <div class="preview-title">🎂 ¡Hoy es tu cumpleaños!</div>
                                 <div class="preview-user">${me ? me.display_name : 'Usuario'}</div>
                                 <div id="live-preview-age" class="preview-age-badge" style="display:none;">
                                     🎂 <span class="preview-age-num" id="live-preview-age-num">0</span> años
@@ -645,7 +661,7 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
                 ` : ''}
             </div>
 
-            ${isTodayBirthday ? `
+            ${canCelebrate ? `
                 ${obsConnected ? `
                     <button class="btn-launch-sound" id="launch-selected-sound"
                         style="background:${cooldownActive ? 'rgba(255,255,255,0.08)' : 'var(--twitch)'};
@@ -679,10 +695,10 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
             card.innerHTML = `
                 <div style="flex:1; min-width:0;">
                     <div style="font-weight:700; font-size:0.92rem;">${sound.name || sound.file.replace('.mp3','')}</div>
-                    <div style="font-size:0.76rem; color:var(--text-dim); margin-top:2px;">Audio lanzado hoy</div>
+                    <div style="font-size:0.76rem; color:var(--text-dim); margin-top:2px;">Audio ya lanzado</div>
                 </div>
                 <div style="font-size:0.78rem; font-weight:700; color:var(--danger); text-transform:uppercase; letter-spacing:0.08em; margin-left:auto;">
-                    Ya lanzado hoy
+                    Ya lanzado
                 </div>
             `;
             list.appendChild(card);
@@ -734,7 +750,7 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
                 <div style="font-size:0.76rem; color:var(--text-dim); margin-top:2px;">Vista previa del audio disponible</div>
             </div>
             <div style="font-size:0.78rem; font-weight:700; color:${isPlayed ? 'var(--danger)' : 'var(--success)'}; text-transform:uppercase; letter-spacing:0.08em; margin-left:auto;">
-                ${isPlayed ? 'Ya lanzado hoy' : 'Disponible'}
+                ${isPlayed ? 'Ya lanzado' : 'Disponible'}
             </div>
             <button type="button" class="sound-mini-play" title="Escuchar vista previa" ${isPlayed ? 'disabled' : ''}>▶</button>
         `;
@@ -887,7 +903,7 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
     // Initial call
     updateLivePreview();
 
-    if (launchBtn && isTodayBirthday && obsConnected && !cooldownActive) {
+    if (launchBtn && canCelebrate && obsConnected && !cooldownActive) {
         launchBtn.onclick = async () => {
             const soundFile = selectedSoundSelect ? selectedSoundSelect.value : selectedLaunchSoundFile;
             if (!soundFile) return;

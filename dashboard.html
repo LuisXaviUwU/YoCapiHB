@@ -646,7 +646,7 @@
             <div class="dash-nav-item active" data-section="overview">
                 <span class="nav-icon">📊</span> Resumen
             </div>
-            <div class="dash-nav-item" data-section="today">
+            <div class="dash-nav-item" data-section="today" title="Cumpleaños de hoy y período de gracia (14 días)">
                 <span class="nav-icon">🎉</span> Hoy
             </div>
             <div class="dash-nav-item" data-section="birthdays">
@@ -701,7 +701,7 @@
                         <div class="dash-stat-card">
                             <span class="dash-stat-icon">🎂</span>
                             <div class="dash-stat-num" id="stat-today">—</div>
-                            <div class="dash-stat-desc">Cumpleaños hoy</div>
+                            <div class="dash-stat-desc">Celebraciones activas</div>
                         </div>
                         <div class="dash-stat-card">
                             <span class="dash-stat-icon">📅</span>
@@ -742,7 +742,7 @@
                 <!-- ── SECTION: Today ── -->
                 <section id="section-today" class="dash-section">
                     <div class="dash-panel">
-                        <div class="dash-panel-title"><span>🎂</span> Cumpleañeros de hoy</div>
+                        <div class="dash-panel-title"><span>🎂</span> Celebraciones activas <span style="font-size:0.72rem; font-weight:600; color:var(--text-dim); margin-left:8px;">(hoy + 14 días de gracia)</span></div>
                         <div id="today-list" class="today-list">
                             <div class="empty-state">Cargando...</div>
                         </div>
@@ -1023,7 +1023,7 @@
         // ─── Navigation ───────────────────────────────────────────────────────────────
         const sectionTitles = {
             overview:   { icon: '📊', label: 'Resumen' },
-            today:      { icon: '🎉', label: 'Hoy' },
+            today:      { icon: '🎉', label: 'Activos' },
             birthdays:  { icon: '🎂', label: 'Todos los cumpleaños' },
             upcoming:   { icon: '📅', label: 'Próximos 7 días' },
             history:    { icon: '📜', label: 'Historial' },
@@ -1176,7 +1176,9 @@
         function loadDashboard(data) {
             dashData = data;
 
-            const todayCount = (data.upcoming || []).find(d => d.daysFromNow === 0)?.users?.length || 0;
+            const todayCount = data.active_celebrations_count
+                ?? (data.upcoming || []).find(d => d.daysFromNow === 0)?.users?.length
+                || 0;
             const weekCount = (data.upcoming || []).reduce((sum, d) => sum + d.users.length, 0);
 
             document.getElementById('stat-total').textContent = data.total || 0;
@@ -1282,7 +1284,8 @@
 
             if (!users || users.length === 0) {
                 list.innerHTML = `<div class="empty-state" style="padding:32px 0;">
-                    🎈 Nadie cumple años hoy (${day} de ${MONTHS_ES[month] || MONTHS_SHORT[month]})
+                    🎈 No hay celebraciones activas hoy<br>
+                    <span style="font-size:0.82rem; color:var(--text-dim); margin-top:6px; display:inline-block;">Incluye cumpleaños de hoy y hasta 14 días después</span>
                 </div>`;
                 return;
             }
@@ -1293,9 +1296,13 @@
                     ? `<img src="${escHtml(u.profile_image)}" alt="" class="today-card-avatar" onerror="this.style.display='none'">`
                     : `<div class="today-card-avatar" style="background:linear-gradient(135deg,var(--twitch),var(--yocapi));display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;color:#fff;">${escHtml(initials)}</div>`;
 
+                const statusHtml = u.is_actual_day
+                    ? `<span class="today-card-alerted yes" style="background:rgba(61,220,132,0.12); color:#3ddc84;">🎂 Cumple hoy</span>`
+                    : `<span class="today-card-alerted no" style="background:rgba(247,208,70,0.12); color:#f7d046;">⏳ Gracia — hace ${u.days_since_birthday} día${u.days_since_birthday === 1 ? '' : 's'}</span>`;
+
                 const alertedHtml = u.has_alerted
                     ? `<span class="today-card-alerted yes">✓ Alerta lanzada</span>`
-                    : `<span class="today-card-alerted no">Sin alertas hoy</span>`;
+                    : `<span class="today-card-alerted no">Sin alertas aún</span>`;
 
                 // Default selected sound: the one the user chose, or first available
                 const defaultSound = u.selected_sound || (sounds[0]?.file || '');
@@ -1315,6 +1322,7 @@
                     <div class="today-card-info">
                         <div class="today-card-name">${escHtml(u.display_name)}</div>
                         <div class="today-card-meta">
+                            ${statusHtml}
                             ${soundBadge}
                             ${alertedHtml}
                         </div>
