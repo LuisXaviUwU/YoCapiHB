@@ -1178,7 +1178,7 @@
 
             const todayCount = data.active_celebrations_count
                 ?? (data.upcoming || []).find(d => d.daysFromNow === 0)?.users?.length
-                || 0;
+                ?? 0;
             const weekCount = (data.upcoming || []).reduce((sum, d) => sum + d.users.length, 0);
 
             document.getElementById('stat-total').textContent = data.total || 0;
