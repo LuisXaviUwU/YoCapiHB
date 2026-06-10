@@ -203,17 +203,6 @@
             to   { transform: translateY(-3px); }
         }
 
-        /* Capybara mascot */
-        .alert-capi {
-            font-size: 2.4rem;
-            flex-shrink: 0;
-            animation: capi-dance 1s ease-in-out infinite alternate;
-            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
-        }
-        @keyframes capi-dance {
-            from { transform: rotate(-6deg) scale(1);    }
-            to   { transform: rotate(6deg)  scale(1.08); }
-        }
     </style>
 </head>
 <body>
@@ -234,7 +223,6 @@
             <div id="alert-queue-badge" class="alert-queue-badge" style="display:none;"></div>
         </div>
         <div class="alert-emoji">🎉</div>
-        <div id="alert-capi" class="alert-capi" style="display:none;"></div>
     </div>
 
     <div id="status">Conectando...</div>
@@ -249,7 +237,6 @@
         const msgEl      = document.getElementById('alert-message');
         const ageEl      = document.getElementById('alert-age');
         const ageNumEl   = document.getElementById('alert-age-num');
-        const capiEl     = document.getElementById('alert-capi');
         const emojiEl    = document.querySelector('.alert-emoji');
         const queueBadge = document.getElementById('alert-queue-badge');
         const statusEl   = document.getElementById('status');
@@ -267,9 +254,6 @@
             capybara:  { color: 'rgba(201,149,106,0.7)', solid: '#c9956a', ring: 'conic-gradient(from 0deg,#c9956a,#e8c9a0,#f7d046,#a0624a,#c9956a)' },
             capinight: { color: 'rgba(123,94,167,0.7)',  solid: '#7b5ea7', ring: 'conic-gradient(from 0deg,#7b5ea7,#b39ddb,#c9956a,#3d2b6b,#7b5ea7)' },
         };
-
-        // ── Capybara mascots ──────────────────────────────────────────────────
-        const CAPI_ICONS = { none:'', cute:'\ud83d\udc3e', party:'\ud83c\udf8a\ud83d\udc3e', royal:'\ud83d\udc51\ud83d\udc3e', kawaii:'\ud83c\udf38\ud83d\udc3e' };
 
         function applyTheme(name) {
             const t = THEMES[name] || THEMES.purple;
@@ -338,15 +322,6 @@
                     ageEl.style.display = 'inline-flex';
                 } else {
                     ageEl.style.display = 'none';
-                }
-
-                // Apply capybara mascot
-                const capiIcon = CAPI_ICONS[data.capi] || '';
-                if (capiIcon) {
-                    capiEl.textContent  = capiIcon;
-                    capiEl.style.display = 'block';
-                } else {
-                    capiEl.style.display = 'none';
                 }
 
                 if (data.message) {

@@ -607,25 +607,9 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
                     </div>
                 </div>
 
-                <div class="pers-row">
-                    <label class="pers-label">🐾 Mascota en overlay</label>
-                    <div class="capi-picker">
-                        ${[
-                            {id:'none',   emoji:'—',     label:'Sin mascota'},
-                            {id:'cute',   emoji:'🐾',    label:'Capibara cute'},
-                            {id:'party',  emoji:'🎊🐾',  label:'Capibara fiesta'},
-                            {id:'royal',  emoji:'👑🐾',  label:'Capibara rey'},
-                            {id:'kawaii', emoji:'🌸🐾',  label:'Capibara kawaii'},
-                        ].map((c, i) =>
-                            `<button class="capi-opt ${i===0?'selected':''}" data-capi="${c.id}" title="${c.label}">${c.emoji}</button>`
-                        ).join('')}
-                    </div>
-                </div>
-
                 <input type="hidden" class="selected-emoji" value="🎉">
                 <input type="hidden" class="selected-theme" value="purple">
                 <input type="hidden" class="selected-anim" value="default">
-                <input type="hidden" class="selected-capi" value="none">
                 
                 <div class="pers-row" style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px;">
                     <label class="pers-label">👀 Vista previa en vivo</label>
@@ -644,7 +628,6 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
                                 <div id="live-preview-message" class="preview-message" style="display:none;"></div>
                             </div>
                             <div class="preview-emoji" id="live-preview-emoji">🎉</div>
-                            <div id="live-preview-capi" class="preview-capi" style="display:none;"></div>
                         </div>
                     </div>
                 </div>
@@ -753,7 +736,6 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
     const emojiButtons = controlPanel.querySelectorAll('.emoji-opt');
     const themeButtons = controlPanel.querySelectorAll('.theme-opt');
     const animButtons  = controlPanel.querySelectorAll('.anim-opt');
-    const capiButtons  = controlPanel.querySelectorAll('.capi-opt');
     const launchBtn = $('launch-selected-sound');
 
     if (selectedSoundSelect) {
@@ -777,11 +759,8 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
         
         const emojiInput = controlPanel.querySelector('.selected-emoji');
         const themeInput = controlPanel.querySelector('.selected-theme');
-        const capiInput  = controlPanel.querySelector('.selected-capi');
-        
         const selEmoji = emojiInput ? emojiInput.value : '🎉';
         const selTheme = themeInput ? themeInput.value : 'purple';
-        const selCapi  = capiInput  ? capiInput.value  : 'none';
         const selAge   = ageInput && ageInput.value ? parseInt(ageInput.value) : null;
         const msgVal   = msgInput ? msgInput.value.trim() : '';
 
@@ -819,14 +798,6 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
             pMsg.style.display = 'none';
         }
 
-        const pCapi = $('live-preview-capi');
-        const CAPI_ICONS = { none:'', cute:'\ud83d\udc3e', party:'\ud83c\udf8a\ud83d\udc3e', royal:'\ud83d\udc51\ud83d\udc3e', kawaii:'\ud83c\udf38\ud83d\udc3e' };
-        if (selCapi && selCapi !== 'none') {
-            pCapi.textContent = CAPI_ICONS[selCapi];
-            pCapi.style.display = 'block';
-        } else {
-            pCapi.style.display = 'none';
-        }
     }
 
     if (ageInput) ageInput.oninput = updateLivePreview;
@@ -874,16 +845,6 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
         };
     });
 
-    capiButtons.forEach(btn => {
-        btn.onclick = () => {
-            capiButtons.forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            const hid = controlPanel.querySelector('.selected-capi');
-            if (hid) hid.value = btn.dataset.capi;
-            updateLivePreview();
-        };
-    });
-    
     // Initial call
     updateLivePreview();
 
@@ -898,11 +859,9 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
             const emojiInput = controlPanel.querySelector('.selected-emoji');
             const themeInput = controlPanel.querySelector('.selected-theme');
             const animInput  = controlPanel.querySelector('.selected-anim');
-            const capiInput  = controlPanel.querySelector('.selected-capi');
             const selEmoji = emojiInput ? emojiInput.value : '🎉';
             const selTheme = themeInput ? themeInput.value : 'purple';
             const selAnim  = animInput  ? animInput.value  : 'default';
-            const selCapi  = capiInput  ? capiInput.value  : 'none';
             const selAge   = ageInput && ageInput.value ? parseInt(ageInput.value) : null;
             const selFont  = fontInput ? fontInput.value : 'sans-serif';
 
@@ -942,7 +901,6 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
                 emoji: selEmoji,
                 theme: selTheme,
                 anim: selAnim,
-                capi: selCapi,
                 age: selAge
             });
 
