@@ -607,14 +607,14 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                 </div>
 
                 <div class="pers-row">
-                    <label class="pers-label">🦫 Mascota Capibara</label>
+                    <label class="pers-label">🐾 Mascota en overlay</label>
                     <div class="capi-picker">
                         ${[
-                            {id:'none',    emoji:'❌', label:'Sin capibara'},
-                            {id:'cute',    emoji:'🦫', label:'Capibara feliz'},
-                            {id:'party',   emoji:'🎊🦫', label:'Capibara de fiesta'},
-                            {id:'royal',   emoji:'👑🦫', label:'Capibara rey'},
-                            {id:'kawaii',  emoji:'🌸🦫', label:'Capibara kawaii'},
+                            {id:'none',   emoji:'—',     label:'Sin mascota'},
+                            {id:'cute',   emoji:'🐾',    label:'Capibara cute'},
+                            {id:'party',  emoji:'🎊🐾',  label:'Capibara fiesta'},
+                            {id:'royal',  emoji:'👑🐾',  label:'Capibara rey'},
+                            {id:'kawaii', emoji:'🌸🐾',  label:'Capibara kawaii'},
                         ].map((c, i) =>
                             `<button class="capi-opt ${i===0?'selected':''}" data-capi="${c.id}" title="${c.label}">${c.emoji}</button>`
                         ).join('')}
