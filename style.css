@@ -1977,11 +1977,23 @@ body {
     box-shadow:
         0 0 0 1px color-mix(in srgb, var(--theme-solid, #9146ff) 20%, transparent),
         0 8px 40px color-mix(in srgb, var(--theme-solid, #9146ff) 40%, transparent);
-    min-width: 360px;
+    width: 100%;
     max-width: 580px;
-    width: max-content;
     font-family: 'Outfit', sans-serif;
     transition: all 0.3s ease;
+}
+
+@media (max-width: 480px) {
+    .preview-overlay {
+        padding: 12px 14px;
+        gap: 10px;
+    }
+    .preview-avatar { width: 45px; height: 45px; }
+    .preview-user { font-size: 1.1rem; }
+    .preview-emoji { font-size: 1.4rem; }
+    .preview-capi { font-size: 1.6rem; }
+    .preview-title { font-size: 0.7rem; }
+    .preview-message { font-size: 0.8rem; }
 }
 
 .preview-avatar-wrap { position: relative; flex-shrink: 0; }
