@@ -4,6 +4,8 @@
 
 // ─── Estado ──────────────────────────────────────────────────────────────────
 let currentSession = null;
+const BIRTHDAY_ALERT_COOLDOWN_MS = 30_000;
+let cooldownRefreshTimer = null;
 
 const MONTHS = [
     '', 'Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -83,6 +85,23 @@ async function api(method, path, body) {
 
 function formatBirthday(month, day) {
     return `${day} de ${MONTHS[month]}`;
+}
+
+function formatCooldown(ms) {
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes > 0) {
+        return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+    }
+    return `${seconds}s`;
+}
+
+function clearCooldownTimer() {
+    if (cooldownRefreshTimer) {
+        clearTimeout(cooldownRefreshTimer);
+        cooldownRefreshTimer = null;
+    }
 }
 
 function updateUserPill(session) {
@@ -259,23 +278,26 @@ function showRegisterForm(me) {
     
     if (me.sounds && me.sounds.length > 0) {
         soundsSection.style.display = 'block';
+        const helper = soundsSection.querySelector('.register-sounds-helper');
+        if (helper) {
+            helper.textContent = 'Puedes previsualizarlos ahora y luego lanzar cualquiera de los 3 en tu cumpleaños.';
+        }
         me.sounds.forEach((sound, idx) => {
-            const isChecked = (me.birthday && me.birthday.selected_sound === sound.file) || (!me.birthday && idx === 0);
             const container = document.createElement('div');
             container.className = 'sound-mini-card';
             container.style.display = 'flex';
             container.style.alignItems = 'center';
-            container.style.gap = '10px';
-            container.style.padding = '8px';
+            container.style.gap = '12px';
+            container.style.padding = '10px 12px';
             container.style.background = 'rgba(255,255,255,0.05)';
             container.style.borderRadius = '8px';
             container.style.border = '1px solid rgba(255,255,255,0.1)';
             
             container.innerHTML = `
-                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; flex:1;">
-                    <input type="radio" name="sound_selection" value="${sound.file}" ${isChecked ? 'checked' : ''} style="accent-color: var(--twitch);">
-                    <div style="font-weight:700; font-size:0.9rem;">${sound.name || sound.file.replace('.mp3','')}</div>
-                </label>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; font-size:0.92rem;">${sound.name || sound.file.replace('.mp3','')}</div>
+                    <div style="font-size:0.76rem; color:var(--text-dim); margin-top:2px;">Vista previa del audio disponible</div>
+                </div>
                 <button type="button" class="sound-mini-play" title="Escuchar vista previa">▶</button>
             `;
 
@@ -431,8 +453,12 @@ function stopPreviewAudio() {
 function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, obsConnected = false) {
     const section = $('sounds-preview-section');
     const list    = $('sounds-preview-list');
+    const cdNote  = $('global-cooldown-note');
+
+    clearCooldownTimer();
     if (!sounds || sounds.length === 0) {
         section.style.display = 'none';
+        if (cdNote) cdNote.style.display = 'none';
         return;
     }
     section.style.display = 'block';
@@ -457,38 +483,27 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
     list.innerHTML = '';
 
     const playedSounds = birthday && birthday.played_sounds ? birthday.played_sounds : [];
-    const selectedSound = birthday ? birthday.selected_sound : null;
+    const lastAlertTime = birthday && birthday.last_alert_time ? birthday.last_alert_time : 0;
+    const cooldownRemaining = lastAlertTime ? Math.max(0, (lastAlertTime + BIRTHDAY_ALERT_COOLDOWN_MS) - Date.now()) : 0;
+    const cooldownActive = isTodayBirthday && cooldownRemaining > 0;
 
-    let orderedSounds = [];
-    if (selectedSound) {
-        const mySound = sounds.find(s => s.file === selectedSound);
-        if (mySound) {
-            mySound.isMySound = true;
-            orderedSounds.push(mySound);
+    if (cdNote) {
+        if (cooldownActive) {
+            cdNote.style.display = 'block';
+            cdNote.style.color = '#ffb86b';
+            cdNote.textContent = `⏳ Espera ${formatCooldown(cooldownRemaining)} para lanzar otro sonido.`;
+        } else {
+            cdNote.style.display = 'none';
+            cdNote.textContent = '';
         }
-        const others = sounds.filter(s => s.file !== selectedSound);
-        orderedSounds.push(...others);
-    } else {
-        orderedSounds = [...sounds];
     }
 
-    let isFirstOther = true;
+    if (cooldownActive) {
+        cooldownRefreshTimer = setTimeout(() => renderSoundsPreview(sounds, birthday, isTodayBirthday, obsConnected), cooldownRemaining + 150);
+    }
 
-    orderedSounds.forEach(sound => {
+    sounds.forEach(sound => {
         if (!sound.file) return;
-
-        if (!sound.isMySound && selectedSound && isFirstOther) {
-            const header = document.createElement('div');
-            header.style.cssText = 'font-size:0.75rem; color:var(--text-dim); font-weight:600; margin-top:10px; margin-bottom:5px; text-transform:uppercase; letter-spacing:1px;';
-            header.textContent = 'Otros sonidos (solo vista previa)';
-            list.appendChild(header);
-            isFirstOther = false;
-        } else if (sound.isMySound) {
-            const header = document.createElement('div');
-            header.style.cssText = 'font-size:0.85rem; color:var(--text-hi); font-weight:700; margin-bottom:5px; display:flex; align-items:center; gap:6px;';
-            header.innerHTML = '✨ Tu sonido elegido';
-            list.appendChild(header);
-        }
 
         const card = document.createElement('div');
         card.className = 'sound-mini-card';
@@ -496,13 +511,13 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
         card.style.alignItems = 'center';
         card.style.flexWrap = 'wrap';
 
-        if (sound.isMySound) {
-            card.style.border = '1px solid rgba(61, 220, 132, 0.4)';
-            card.style.background = 'rgba(61, 220, 132, 0.05)';
-        }
-
         const isPlayed = playedSounds.includes(sound.file);
-        const canLaunch = isTodayBirthday && sound.isMySound;
+        const canLaunch = isTodayBirthday && obsConnected && !cooldownActive && !isPlayed;
+        const launchLabel = isPlayed
+            ? '✅ Ya lanzado hoy'
+            : cooldownActive
+                ? `⏳ Espera ${formatCooldown(cooldownRemaining)}`
+                : '🚀 Lanzar al stream';
 
         card.innerHTML = `
             <div style="display:flex; align-items:center; flex:1; min-width:200px;">
@@ -517,7 +532,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                     ).join('')}
                 </div>
             </div>
-            ${canLaunch ? `
+            ${isTodayBirthday ? `
                 <div class="personalize-panel">
                     ${obsConnected && !isPlayed ? `
                     <div class="pers-row">
@@ -560,12 +575,12 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
 
                     ${obsConnected ? `
                     <button class="btn-launch-sound" data-file="${sound.file}"
-                        style="background:${isPlayed?'rgba(255,255,255,0.08)':'var(--twitch)'};
-                               color:${isPlayed?'#666':'#fff'};
+                        style="background:${canLaunch ? 'var(--twitch)' : 'rgba(255,255,255,0.08)'};
+                               color:${canLaunch ? '#fff' : '#666'};
                                border:none; padding:10px; border-radius:8px; font-weight:700;
-                               cursor:${isPlayed?'not-allowed':'pointer'}; width:100%; margin-top:4px;
-                               font-size:0.9rem; transition:all 0.2s;" ${isPlayed?'disabled':''}>
-                        ${isPlayed ? '\u2705 Ya lanzado hoy' : '\ud83d\ude80 Lanzar al stream'}
+                               cursor:${canLaunch ? 'pointer' : 'not-allowed'}; width:100%; margin-top:4px;
+                               font-size:0.9rem; transition:all 0.2s;" ${canLaunch ? '' : 'disabled'}>
+                        ${launchLabel}
                     </button>
                     ` : `
                     <button disabled style="background:rgba(255,255,255,0.04); color:#666; border:1px solid var(--border);
@@ -574,7 +589,14 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                     </button>
                     `}
                 </div>
-            ` : ''}
+            ` : `
+                <div class="personalize-panel">
+                    <button disabled style="background:rgba(255,255,255,0.04); color:#666; border:1px solid var(--border);
+                        padding:10px; border-radius:8px; font-weight:600; cursor:not-allowed; width:100%; font-size:0.85rem;">
+                        El día de tu cumpleaños podrás lanzar este sonido
+                    </button>
+                </div>
+            `}
         `;
 
         // Play preview button
@@ -630,7 +652,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
         });
 
         const launchBtn = card.querySelector('.btn-launch-sound');
-        if (launchBtn && !isPlayed && obsConnected) {
+        if (launchBtn && canLaunch) {
             launchBtn.addEventListener('click', async () => {
                 const msgInput   = card.querySelector('.custom-alert-msg');
                 const emojiInput = card.querySelector('.selected-emoji');
@@ -670,21 +692,22 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                 });
 
                 if (r.ok) {
+                    launchBtn.disabled = true;
                     launchBtn.innerHTML = '✅ Ya lanzado';
                     launchBtn.style.background = 'rgba(255,255,255,0.1)';
                     launchBtn.style.color = '#888';
                     launchBtn.style.cursor = 'not-allowed';
 
-                    const cdNote = $('global-cooldown-note');
-                    if (cdNote) {
-                        cdNote.style.display = 'block';
-                        if (r.data.overlay_clients === 0) {
-                            cdNote.style.color = 'var(--danger)';
-                            cdNote.innerHTML = `⚠️ Tu alerta fue enviada al servidor, pero OBS parece haberse desconectado justo ahora. Avisa a yocapi para que la repita desde su panel.`;
-                        } else {
-                            cdNote.style.color = 'inherit';
-                            cdNote.innerHTML = `✅ Tu alerta fue enviada al stream. Si no sonó, yocapi puede repetirla desde el dashboard.`;
-                        }
+                    const refreshedMe = await api('GET', '/api/me');
+                    if (refreshedMe.ok) {
+                        showRegistered(refreshedMe.data);
+                    }
+
+                    const cooldownNote = $('global-cooldown-note');
+                    if (cooldownNote && r.data.overlay_clients === 0) {
+                        cooldownNote.style.display = 'block';
+                        cooldownNote.style.color = 'var(--danger)';
+                        cooldownNote.textContent = `⚠️ Tu alerta fue enviada al servidor, pero OBS parece haberse desconectado justo ahora. Avisa a yocapi para que la repita desde su panel.`;
                     }
                 } else {
                     launchBtn.disabled = false;
@@ -753,19 +776,15 @@ $('btn-register').addEventListener('click', async () => {
     const day   = parseInt($('pick-day').value);
     if (!month || !day) return;
 
-    // Obtener sonido seleccionado
-    const selectedSoundInput = document.querySelector('input[name="sound_selection"]:checked');
-    const selected_sound = selectedSoundInput ? selectedSoundInput.value : null;
-
     // Confirmación de registro
     const dateStr = `${day} de ${$('pick-month').options[$('pick-month').selectedIndex].text}`;
-    const confirmed = await customConfirm(`¿Confirmas tu elección de fecha y sonido para tu cumpleaños (${dateStr})?`);
+    const confirmed = await customConfirm(`¿Confirmas tu fecha de cumpleaños (${dateStr})? Después podrás lanzar cualquiera de los 3 sonidos disponibles.`);
     if (!confirmed) return;
 
     $('btn-register').disabled = true;
     $('btn-register').textContent = 'Guardando...';
 
-    const r = await api('POST', '/api/birthday/register', { month, day, selected_sound });
+    const r = await api('POST', '/api/birthday/register', { month, day });
     if (r.ok) {
         // Actualizar la vista de usuario
         const meRes = await api('GET', '/api/me');
