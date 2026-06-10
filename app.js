@@ -632,11 +632,11 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                         <div id="live-preview-alert" class="preview-overlay">
                             <div class="preview-avatar-wrap">
                                 <div class="preview-avatar-ring"></div>
-                                <img src="${data.profile_image}" alt="" class="preview-avatar">
+                                <img src="${birthday ? birthday.profile_image : ''}" alt="" class="preview-avatar">
                             </div>
                             <div class="preview-content">
                                 <div class="preview-title">🎂 ¡Hoy es su cumpleaños!</div>
-                                <div class="preview-user">${data.display_name}</div>
+                                <div class="preview-user">${birthday ? birthday.display_name : 'Usuario'}</div>
                                 <div id="live-preview-age" class="preview-age-badge" style="display:none;">
                                     🎂 <span class="preview-age-num" id="live-preview-age-num">0</span> años
                                 </div>
