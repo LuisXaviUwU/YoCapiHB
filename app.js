@@ -441,12 +441,19 @@ function stopPreviewAudio() {
         previewAudio = null;
     }
     if (previewPlayBtn) {
-        previewPlayBtn.textContent = '▶';
-        previewPlayBtn.style.background = 'linear-gradient(135deg, var(--twitch), var(--twitch-dk))';
-        previewPlayBtn.style.boxShadow = '0 2px 10px rgba(145,70,255,0.35)';
-        previewPlayBtn.style.animation = 'none';
-        const waveform = previewPlayBtn.closest('.sound-mini-card')?.querySelector('.sound-mini-wave');
-        if (waveform) waveform.classList.remove('active');
+        if (previewPlayBtn.id === 'preview-selected-sound') {
+            const icon = previewPlayBtn.querySelector('.preview-selected-icon');
+            if (icon) icon.textContent = '▶';
+            previewPlayBtn.style.background = 'rgba(255,255,255,0.05)';
+            previewPlayBtn.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+        } else {
+            previewPlayBtn.textContent = '▶';
+            previewPlayBtn.style.background = 'linear-gradient(135deg, var(--twitch), var(--twitch-dk))';
+            previewPlayBtn.style.boxShadow = '0 2px 10px rgba(145,70,255,0.35)';
+            previewPlayBtn.style.animation = 'none';
+            const waveform = previewPlayBtn.closest('.sound-mini-card')?.querySelector('.sound-mini-wave');
+            if (waveform) waveform.classList.remove('active');
+        }
         previewPlayBtn = null;
     }
 }
@@ -463,12 +470,13 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
         return;
     }
     section.style.display = 'block';
+    list.style.display = 'none';
 
     let controlPanel = $('launch-control-panel');
     if (!controlPanel) {
         controlPanel = document.createElement('div');
         controlPanel.id = 'launch-control-panel';
-        controlPanel.style.cssText = 'margin-bottom:14px; padding:14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.03);';
+        controlPanel.style.cssText = 'margin-bottom:14px; padding:16px; border:1px solid var(--border); border-radius:16px; background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); box-shadow:0 10px 30px rgba(0,0,0,0.18);';
         section.insertBefore(controlPanel, list);
     }
     
@@ -514,18 +522,30 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
         return `<option value="${sound.file}" ${sound.file === selectedLaunchSoundFile ? 'selected' : ''} ${isPlayed ? 'disabled' : ''}>${label}</option>`;
     }).join('');
 
+    const selectedSoundMeta = availableSounds.find(sound => sound.file === selectedLaunchSoundFile) || availableSounds[0];
+    const selectedAlreadyPlayed = playedSounds.includes(selectedSoundMeta.file);
+
     controlPanel.innerHTML = `
         <div style="display:flex; flex-direction:column; gap:12px;">
-            <div style="font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim);">
-                Elegir audio a lanzar
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <div style="font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim);">
+                    Elegir audio a lanzar
+                </div>
+                <div style="font-size:0.72rem; font-weight:700; color:${selectedAlreadyPlayed ? 'var(--danger)' : 'var(--success)'}; text-transform:uppercase; letter-spacing:0.08em;">
+                    ${selectedAlreadyPlayed ? 'Ya lanzado' : 'Disponible'}
+                </div>
             </div>
             <div style="display:grid; gap:10px; grid-template-columns:minmax(0, 1fr);">
                 <label style="display:flex; flex-direction:column; gap:8px;">
                     <span style="font-size:0.78rem; font-weight:700; color:var(--text-dim);">Audio</span>
-                    <select id="launch-sound-select" style="width:100%; padding:12px 14px; background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; color:var(--text-hi); font-family:inherit; font-size:0.96rem; outline:none;">
+                    <select id="launch-sound-select" style="width:100%; padding:13px 14px; background:linear-gradient(180deg, rgba(145,70,255,0.12), rgba(0,0,0,0.14)); border:1px solid var(--border-hi); border-radius:12px; color:var(--text-hi); font-family:inherit; font-size:0.96rem; outline:none;">
                         ${selectorOptions}
                     </select>
                 </label>
+                <button type="button" id="preview-selected-sound" style="display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:12px 14px; border:none; border-radius:12px; background:rgba(255,255,255,0.05); color:var(--text-hi); font-family:inherit; font-weight:700; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.12); transition:transform var(--t), background var(--t), box-shadow var(--t);">
+                    <span class="preview-selected-icon" style="width:32px; height:32px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--twitch), var(--twitch-dk)); color:#fff; flex-shrink:0;">▶</span>
+                    <span id="preview-selected-label" style="flex:1; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Escuchar ${selectedSoundMeta.name || selectedSoundMeta.file.replace('.mp3','')}</span>
+                </button>
                 ${obsConnected && isTodayBirthday && !cooldownActive ? `
                 <div class="pers-row">
                     <label class="pers-label">💬 Mensaje</label>
@@ -573,66 +593,10 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                                color:${cooldownActive ? '#666' : '#fff'};
                                border:none; padding:12px; border-radius:10px; font-weight:700;
                                cursor:${cooldownActive ? 'not-allowed' : 'pointer'}; width:100%; margin-top:4px;
-                               font-size:0.95rem; transition:all 0.2s;" ${cooldownActive ? 'disabled' : ''}>
-                        ${cooldownActive ? `⏳ Espera ${formatCooldown(cooldownRemaining)}` : '🚀 Lanzar al stream'}
-                    </button>
-                ` : `
-                    <button disabled style="background:rgba(255,255,255,0.04); color:#666; border:1px solid var(--border);
-                        padding:10px; border-radius:8px; font-weight:600; cursor:not-allowed; width:100%; font-size:0.85rem;">
-                        ⚠️ OBS no conectado (avisa a yocapi)
-                    </button>
-                `}
-            ` : `
-                <button disabled style="background:rgba(255,255,255,0.04); color:#666; border:1px solid var(--border);
-                    padding:10px; border-radius:8px; font-weight:600; cursor:not-allowed; width:100%; font-size:0.85rem;">
-                    El día de tu cumpleaños podrás lanzar uno de tus sonidos
-                </button>
-            `}
-        </div>
-    `;
-
-    if (cdNote) {
-        if (cooldownActive) {
-            cdNote.style.display = 'block';
-            cdNote.style.color = '#ffb86b';
-            cdNote.textContent = `⏳ Espera ${formatCooldown(cooldownRemaining)} para lanzar otro sonido.`;
-        } else {
-            cdNote.style.display = 'none';
-            cdNote.textContent = '';
-        }
-    }
-
-    if (cooldownActive) {
-        cooldownRefreshTimer = setTimeout(() => renderSoundsPreview(sounds, birthday, isTodayBirthday, obsConnected), cooldownRemaining + 150);
-    }
-
-    sounds.forEach(sound => {
-        if (!sound.file) return;
-
-        const card = document.createElement('div');
-        card.className = 'sound-mini-card';
-        card.style.display = 'flex';
-        card.style.alignItems = 'center';
-        card.style.flexWrap = 'wrap';
-        card.style.justifyContent = 'space-between';
-
-        const isPlayed = playedSounds.includes(sound.file);
-        if (isPlayed) {
-            card.style.opacity = '0.72';
-        }
-
-        card.innerHTML = `
-            <div style="display:flex; align-items:center; flex:1; min-width:200px;">
-                <button class="sound-mini-play" title="Escuchar vista previa">▶</button>
-                <div class="sound-mini-info">
-                    <div class="sound-mini-name">${sound.name || sound.file.replace('.mp3','')}</div>
-                    <div class="sound-mini-sub">🎵 ${sound.file}</div>
-                </div>
-                <div class="sound-mini-wave">
-                    ${[0.5,0.8,1,0.6,0.9,0.5,0.7].map((h,i) =>
-                        `<span style="height:${Math.round(h*14)}px;--d:${(0.5+i*0.1).toFixed(1)}s;--dl:${(i*0.07).toFixed(2)}s"></span>`
                     ).join('')}
                 </div>
+                            const previewSelectedBtn = $('preview-selected-sound');
+                            const previewSelectedLabel = $('preview-selected-label');
             </div>
             <div style="font-size:0.78rem; font-weight:700; color:${isPlayed ? 'var(--danger)' : 'var(--success)'}; text-transform:uppercase; letter-spacing:0.08em; margin-left:auto;">
                 ${isPlayed ? 'Ya lanzado hoy' : 'Disponible'}
@@ -643,9 +607,29 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
         const playBtn = card.querySelector('.sound-mini-play');
         playBtn.addEventListener('click', () => {
             if (previewPlayBtn === playBtn) { stopPreviewAudio(); return; }
-            stopPreviewAudio();
+                                    renderSoundsPreview(sounds, birthday, isTodayBirthday, obsConnected);
             const audio = new Audio(`music/${sound.file}`);
             previewAudio = audio;
+
+                            if (previewSelectedBtn) {
+                                previewSelectedBtn.onclick = () => {
+                                    const previewSound = availableSounds.find(sound => sound.file === selectedLaunchSoundFile) || availableSounds[0];
+                                    if (!previewSound) return;
+                                    stopPreviewAudio();
+                                    const audio = new Audio(`music/${previewSound.file}`);
+                                    previewAudio = audio;
+                                    previewPlayBtn = previewSelectedBtn;
+                                    const icon = previewSelectedBtn.querySelector('.preview-selected-icon');
+                                    if (icon) icon.textContent = '⏸';
+                                    previewSelectedBtn.style.background = 'rgba(145,70,255,0.12)';
+                                    previewSelectedBtn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.22)';
+                                    audio.play().catch(() => stopPreviewAudio());
+                                    audio.addEventListener('ended', () => stopPreviewAudio());
+                                };
+                                if (previewSelectedLabel && selectedSoundMeta) {
+                                    previewSelectedLabel.textContent = `Escuchar ${selectedSoundMeta.name || selectedSoundMeta.file.replace('.mp3','')}`;
+                                }
+                            }
             previewPlayBtn = playBtn;
             playBtn.textContent = '⏸';
             playBtn.style.background = 'linear-gradient(135deg, #3ddc84, #28a865)';
