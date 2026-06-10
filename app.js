@@ -513,6 +513,8 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
     }
 
     const playableSounds = availableSounds.filter(sound => !playedSounds.includes(sound.file));
+    const allSoundsPlayed = isTodayBirthday && availableSounds.every(sound => playedSounds.includes(sound.file));
+
     if (!selectedLaunchSoundFile || playedSounds.includes(selectedLaunchSoundFile) || !availableSounds.some(sound => sound.file === selectedLaunchSoundFile)) {
         selectedLaunchSoundFile = (playableSounds[0] || availableSounds[0]).file;
     }
@@ -526,6 +528,15 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
     const selectedSoundMeta = availableSounds.find(sound => sound.file === selectedLaunchSoundFile) || availableSounds[0];
     const selectedAlreadyPlayed = playedSounds.includes(selectedSoundMeta.file);
 
+    if (allSoundsPlayed) {
+        controlPanel.innerHTML = `
+            <div class="all-audios-played-notice">
+                <div class="all-audios-played-icon">🎉</div>
+                <div class="all-audios-played-title">¡Listo por hoy!</div>
+                <div class="all-audios-played-text">Ya has lanzado todos los audios disponibles. No podrás enviar más alertas hasta mañana.</div>
+            </div>
+        `;
+    } else {
     controlPanel.innerHTML = `
         <div style="display:flex; flex-direction:column; gap:12px;">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
@@ -539,7 +550,7 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
             <div style="display:grid; gap:10px; grid-template-columns:minmax(0, 1fr);">
                 <label style="display:flex; flex-direction:column; gap:8px;">
                     <span style="font-size:0.78rem; font-weight:700; color:var(--text-dim);">Audio</span>
-                    <select id="launch-sound-select" style="width:100%; padding:13px 14px; background:linear-gradient(180deg, rgba(145,70,255,0.12), rgba(0,0,0,0.14)); border:1px solid var(--border-hi); border-radius:12px; color:var(--text-hi); font-family:inherit; font-size:0.96rem; outline:none;">
+                    <select id="launch-sound-select" class="launch-sound-select">
                         ${selectorOptions}
                     </select>
                 </label>
@@ -647,9 +658,37 @@ function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConn
             ` : ''}
         </div>
     `;
+    }
 
     const previewSelectedBtn = $('preview-selected-sound');
     const previewSelectedLabel = $('preview-selected-label');
+
+    if (allSoundsPlayed) {
+        availableSounds.forEach(sound => {
+            const card = document.createElement('div');
+            card.className = 'sound-mini-card';
+            card.style.display = 'flex';
+            card.style.alignItems = 'center';
+            card.style.gap = '12px';
+            card.style.padding = '10px 12px';
+            card.style.background = 'rgba(255,255,255,0.05)';
+            card.style.borderRadius = '8px';
+            card.style.border = '1px solid rgba(255,255,255,0.1)';
+            card.style.opacity = '0.7';
+
+            card.innerHTML = `
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; font-size:0.92rem;">${sound.name || sound.file.replace('.mp3','')}</div>
+                    <div style="font-size:0.76rem; color:var(--text-dim); margin-top:2px;">Audio lanzado hoy</div>
+                </div>
+                <div style="font-size:0.78rem; font-weight:700; color:var(--danger); text-transform:uppercase; letter-spacing:0.08em; margin-left:auto;">
+                    Ya lanzado hoy
+                </div>
+            `;
+            list.appendChild(card);
+        });
+        return;
+    }
 
     if (previewSelectedBtn) {
         previewSelectedBtn.onclick = () => {
