@@ -625,6 +625,28 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                 <input type="hidden" class="selected-theme" value="purple">
                 <input type="hidden" class="selected-anim" value="default">
                 <input type="hidden" class="selected-capi" value="none">
+                
+                <div class="pers-row" style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px;">
+                    <label class="pers-label">👀 Vista previa en vivo</label>
+                    <div class="preview-container">
+                        <div id="live-preview-alert" class="preview-overlay">
+                            <div class="preview-avatar-wrap">
+                                <div class="preview-avatar-ring"></div>
+                                <img src="${data.profile_image}" alt="" class="preview-avatar">
+                            </div>
+                            <div class="preview-content">
+                                <div class="preview-title">🎂 ¡Hoy es su cumpleaños!</div>
+                                <div class="preview-user">${data.display_name}</div>
+                                <div id="live-preview-age" class="preview-age-badge" style="display:none;">
+                                    🎂 <span class="preview-age-num" id="live-preview-age-num">0</span> años
+                                </div>
+                                <div id="live-preview-message" class="preview-message" style="display:none;"></div>
+                            </div>
+                            <div class="preview-emoji" id="live-preview-emoji">🎉</div>
+                            <div id="live-preview-capi" class="preview-capi" style="display:none;"></div>
+                        </div>
+                    </div>
+                </div>
                 ` : ''}
             </div>
 
@@ -747,11 +769,73 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
         };
     }
 
+    const ageInput   = controlPanel.querySelector('.custom-alert-age');
+    function updateLivePreview() {
+        const pAlert = $('live-preview-alert');
+        if (!pAlert) return;
+        
+        const emojiInput = controlPanel.querySelector('.selected-emoji');
+        const themeInput = controlPanel.querySelector('.selected-theme');
+        const capiInput  = controlPanel.querySelector('.selected-capi');
+        
+        const selEmoji = emojiInput ? emojiInput.value : '🎉';
+        const selTheme = themeInput ? themeInput.value : 'purple';
+        const selCapi  = capiInput  ? capiInput.value  : 'none';
+        const selAge   = ageInput && ageInput.value ? parseInt(ageInput.value) : null;
+        const msgVal   = msgInput ? msgInput.value.trim() : '';
+
+        const THEMES = {
+            purple:    { color: 'rgba(145,70,255,0.6)',  solid: '#9146ff', ring: 'conic-gradient(from 0deg,#9146ff,#bf94ff,#f7d046,#ff6bcb,#9146ff)' },
+            pink:      { color: 'rgba(255,107,203,0.6)', solid: '#ff6bcb', ring: 'conic-gradient(from 0deg,#ff6bcb,#ffb3e6,#f7d046,#9146ff,#ff6bcb)' },
+            gold:      { color: 'rgba(247,208,70,0.6)',  solid: '#f7d046', ring: 'conic-gradient(from 0deg,#f7d046,#fff4a0,#ff8a65,#f7d046,#f7d046)' },
+            blue:      { color: 'rgba(79,195,247,0.6)',  solid: '#4fc3f7', ring: 'conic-gradient(from 0deg,#4fc3f7,#b3e5fc,#9146ff,#ff6bcb,#4fc3f7)' },
+            green:     { color: 'rgba(61,220,132,0.6)',  solid: '#3ddc84', ring: 'conic-gradient(from 0deg,#3ddc84,#b9f5d8,#f7d046,#4fc3f7,#3ddc84)' },
+            red:       { color: 'rgba(255,92,92,0.6)',   solid: '#ff5c5c', ring: 'conic-gradient(from 0deg,#ff5c5c,#ffb3b3,#f7d046,#ff6bcb,#ff5c5c)' },
+            capybara:  { color: 'rgba(201,149,106,0.7)', solid: '#c9956a', ring: 'conic-gradient(from 0deg,#c9956a,#e8c9a0,#f7d046,#a0624a,#c9956a)' },
+            capinight: { color: 'rgba(123,94,167,0.7)',  solid: '#7b5ea7', ring: 'conic-gradient(from 0deg,#7b5ea7,#b39ddb,#c9956a,#3d2b6b,#7b5ea7)' },
+        };
+
+        const t = THEMES[selTheme] || THEMES.purple;
+        pAlert.style.setProperty('--theme-color', t.color);
+        pAlert.style.setProperty('--theme-solid', t.solid);
+        pAlert.style.setProperty('--theme-ring',  t.ring);
+
+        $('live-preview-emoji').textContent = selEmoji;
+
+        const pAge = $('live-preview-age');
+        if (selAge && selAge > 0) {
+            $('live-preview-age-num').textContent = selAge;
+            pAge.style.display = 'inline-flex';
+        } else {
+            pAge.style.display = 'none';
+        }
+
+        const pMsg = $('live-preview-message');
+        if (msgVal) {
+            pMsg.textContent = `"${msgVal}"`;
+            pMsg.style.display = 'block';
+        } else {
+            pMsg.style.display = 'none';
+        }
+
+        const pCapi = $('live-preview-capi');
+        const CAPI_ICONS = { none:'', cute:'\ud83d\udc3e', party:'\ud83c\udf8a\ud83d\udc3e', royal:'\ud83d\udc51\ud83d\udc3e', kawaii:'\ud83c\udf38\ud83d\udc3e' };
+        if (selCapi && selCapi !== 'none') {
+            pCapi.textContent = CAPI_ICONS[selCapi];
+            pCapi.style.display = 'block';
+        } else {
+            pCapi.style.display = 'none';
+        }
+    }
+
+    if (ageInput) ageInput.oninput = updateLivePreview;
+
     if (msgInput && counterEl) {
         msgInput.oninput = () => {
             const len = msgInput.value.length;
             counterEl.textContent = `${len} / 80`;
             counterEl.style.color = len > 70 ? (len >= 80 ? 'var(--danger)' : '#f7d046') : 'var(--text-dim)';
+            updateLivePreview();
         };
     }
 
@@ -761,6 +845,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
             btn.classList.add('selected');
             const hid = controlPanel.querySelector('.selected-emoji');
             if (hid) hid.value = btn.dataset.emoji;
+            updateLivePreview();
         };
     });
 
@@ -774,6 +859,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
             btn.style.boxShadow = `0 0 0 2px ${btn.dataset.color}`;
             const hid = controlPanel.querySelector('.selected-theme');
             if (hid) hid.value = btn.dataset.theme;
+            updateLivePreview();
         };
     });
 
@@ -783,6 +869,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
             btn.classList.add('selected');
             const hid = controlPanel.querySelector('.selected-anim');
             if (hid) hid.value = btn.dataset.anim;
+            updateLivePreview();
         };
     });
 
@@ -792,8 +879,12 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
             btn.classList.add('selected');
             const hid = controlPanel.querySelector('.selected-capi');
             if (hid) hid.value = btn.dataset.capi;
+            updateLivePreview();
         };
     });
+    
+    // Initial call
+    updateLivePreview();
 
     if (launchBtn && isTodayBirthday && obsConnected && !cooldownActive) {
         launchBtn.onclick = async () => {
