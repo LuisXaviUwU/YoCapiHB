@@ -1610,6 +1610,71 @@ body {
     box-shadow: 0 0 0 2px currentColor;
 }
 
+/* Animation style picker */
+.anim-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.anim-opt {
+    font-size: 0.78rem;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.anim-opt:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-hi);
+    transform: translateY(-1px);
+}
+
+.anim-opt.selected {
+    background: rgba(145, 70, 255, 0.2);
+    border-color: rgba(145, 70, 255, 0.6);
+    color: var(--text-hi);
+    box-shadow: 0 0 8px rgba(145, 70, 255, 0.3);
+}
+
+/* Capybara mascot picker */
+.capi-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.capi-opt {
+    font-size: 1.1rem;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    line-height: 1;
+}
+
+.capi-opt:hover {
+    background: rgba(201, 149, 106, 0.15);
+    border-color: rgba(201, 149, 106, 0.4);
+    transform: scale(1.1);
+}
+
+.capi-opt.selected {
+    background: rgba(201, 149, 106, 0.2);
+    border-color: rgba(201, 149, 106, 0.7);
+    box-shadow: 0 0 10px rgba(201, 149, 106, 0.35);
+}
+
 /* ── Dashboard Sound Cards ─────────────────────────────────────────── */
 .sound-cards-list {
     display: flex;

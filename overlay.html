@@ -36,17 +36,22 @@
                 0 0 80px color-mix(in srgb, var(--theme-solid, #9146ff) 15%, transparent);
             backdrop-filter: blur(16px);
             min-width: 360px;
-            max-width: 540px;
+            max-width: 580px;
             width: max-content;
             pointer-events: none;
-            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
             z-index: 100;
         }
 
-        #birthday-alert.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
+        /* Entry animations */
+        #birthday-alert.anim-default { transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        #birthday-alert.anim-bounce  { transition: all 0.5s cubic-bezier(0.68, -0.6, 0.32, 1.6); }
+        #birthday-alert.anim-zoom    { transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); transform: translateX(-50%) scale(0.2); opacity:0; }
+        #birthday-alert.anim-spin    { transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1); transform: translateX(-50%) translateY(200px) rotate(360deg); opacity:0; }
+
+        #birthday-alert.show.anim-default { transform: translateX(-50%) translateY(0); opacity: 1; }
+        #birthday-alert.show.anim-bounce  { transform: translateX(-50%) translateY(0); opacity: 1; }
+        #birthday-alert.show.anim-zoom    { transform: translateX(-50%) scale(1);      opacity: 1; }
+        #birthday-alert.show.anim-spin    { transform: translateX(-50%) translateY(0) rotate(0deg); opacity: 1; }
 
         .alert-avatar-wrap { position: relative; flex-shrink: 0; }
 
@@ -164,12 +169,57 @@
             white-space: normal;
             max-width: 360px;
         }
+
+        /* Age badge */
+        .alert-age-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 5px;
+            background: color-mix(in srgb, var(--theme-solid, #9146ff) 20%, transparent);
+            border: 1px solid color-mix(in srgb, var(--theme-solid, #9146ff) 50%, transparent);
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #fff;
+            animation: age-pop 0.5s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        @keyframes age-pop {
+            from { transform: scale(0) rotate(-10deg); opacity: 0; }
+            to   { transform: scale(1) rotate(0deg);   opacity: 1; }
+        }
+        .alert-age-num {
+            font-size: 1.1rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--theme-solid, #9146ff), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: age-bounce 0.8s 0.5s ease-in-out infinite alternate;
+        }
+        @keyframes age-bounce {
+            from { transform: translateY(0); }
+            to   { transform: translateY(-3px); }
+        }
+
+        /* Capybara mascot */
+        .alert-capi {
+            font-size: 2.4rem;
+            flex-shrink: 0;
+            animation: capi-dance 1s ease-in-out infinite alternate;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+        }
+        @keyframes capi-dance {
+            from { transform: rotate(-6deg) scale(1);    }
+            to   { transform: rotate(6deg)  scale(1.08); }
+        }
     </style>
 </head>
 <body>
     <div id="confetti-container" class="confetti-container"></div>
 
-    <div id="birthday-alert">
+    <div id="birthday-alert" class="anim-default">
         <div class="alert-avatar-wrap">
             <div class="alert-avatar-ring"></div>
             <img id="alert-avatar" src="" alt="" class="alert-avatar">
@@ -177,10 +227,14 @@
         <div class="alert-content">
             <div class="alert-title">🎂 ¡Hoy es su cumpleaños!</div>
             <div id="alert-user" class="alert-user">Usuario</div>
+            <div id="alert-age" class="alert-age-badge" style="display:none;">
+                🎂 <span class="alert-age-num" id="alert-age-num">0</span> años
+            </div>
             <div id="alert-message" class="alert-message" style="display:none;"></div>
             <div id="alert-queue-badge" class="alert-queue-badge" style="display:none;"></div>
         </div>
         <div class="alert-emoji">🎉</div>
+        <div id="alert-capi" class="alert-capi" style="display:none;"></div>
     </div>
 
     <div id="status">Conectando...</div>
@@ -193,6 +247,9 @@
         const avatarEl   = document.getElementById('alert-avatar');
         const userEl     = document.getElementById('alert-user');
         const msgEl      = document.getElementById('alert-message');
+        const ageEl      = document.getElementById('alert-age');
+        const ageNumEl   = document.getElementById('alert-age-num');
+        const capiEl     = document.getElementById('alert-capi');
         const emojiEl    = document.querySelector('.alert-emoji');
         const queueBadge = document.getElementById('alert-queue-badge');
         const statusEl   = document.getElementById('status');
@@ -201,13 +258,18 @@
 
         // ── Temas de color ────────────────────────────────────────────────────
         const THEMES = {
-            purple: { color: 'rgba(145,70,255,0.6)',  solid: '#9146ff', ring: 'conic-gradient(from 0deg,#9146ff,#bf94ff,#f7d046,#ff6bcb,#9146ff)' },
-            pink:   { color: 'rgba(255,107,203,0.6)', solid: '#ff6bcb', ring: 'conic-gradient(from 0deg,#ff6bcb,#ffb3e6,#f7d046,#9146ff,#ff6bcb)' },
-            gold:   { color: 'rgba(247,208,70,0.6)',  solid: '#f7d046', ring: 'conic-gradient(from 0deg,#f7d046,#fff4a0,#ff8a65,#f7d046,#f7d046)' },
-            blue:   { color: 'rgba(79,195,247,0.6)',  solid: '#4fc3f7', ring: 'conic-gradient(from 0deg,#4fc3f7,#b3e5fc,#9146ff,#ff6bcb,#4fc3f7)' },
-            green:  { color: 'rgba(61,220,132,0.6)',  solid: '#3ddc84', ring: 'conic-gradient(from 0deg,#3ddc84,#b9f5d8,#f7d046,#4fc3f7,#3ddc84)' },
-            red:    { color: 'rgba(255,92,92,0.6)',   solid: '#ff5c5c', ring: 'conic-gradient(from 0deg,#ff5c5c,#ffb3b3,#f7d046,#ff6bcb,#ff5c5c)' },
+            purple:    { color: 'rgba(145,70,255,0.6)',  solid: '#9146ff', ring: 'conic-gradient(from 0deg,#9146ff,#bf94ff,#f7d046,#ff6bcb,#9146ff)' },
+            pink:      { color: 'rgba(255,107,203,0.6)', solid: '#ff6bcb', ring: 'conic-gradient(from 0deg,#ff6bcb,#ffb3e6,#f7d046,#9146ff,#ff6bcb)' },
+            gold:      { color: 'rgba(247,208,70,0.6)',  solid: '#f7d046', ring: 'conic-gradient(from 0deg,#f7d046,#fff4a0,#ff8a65,#f7d046,#f7d046)' },
+            blue:      { color: 'rgba(79,195,247,0.6)',  solid: '#4fc3f7', ring: 'conic-gradient(from 0deg,#4fc3f7,#b3e5fc,#9146ff,#ff6bcb,#4fc3f7)' },
+            green:     { color: 'rgba(61,220,132,0.6)',  solid: '#3ddc84', ring: 'conic-gradient(from 0deg,#3ddc84,#b9f5d8,#f7d046,#4fc3f7,#3ddc84)' },
+            red:       { color: 'rgba(255,92,92,0.6)',   solid: '#ff5c5c', ring: 'conic-gradient(from 0deg,#ff5c5c,#ffb3b3,#f7d046,#ff6bcb,#ff5c5c)' },
+            capybara:  { color: 'rgba(201,149,106,0.7)', solid: '#c9956a', ring: 'conic-gradient(from 0deg,#c9956a,#e8c9a0,#f7d046,#a0624a,#c9956a)' },
+            capinight: { color: 'rgba(123,94,167,0.7)',  solid: '#7b5ea7', ring: 'conic-gradient(from 0deg,#7b5ea7,#b39ddb,#c9956a,#3d2b6b,#7b5ea7)' },
         };
+
+        // ── Capybara mascots ──────────────────────────────────────────────────
+        const CAPI_ICONS = { none:'', cute:'🦫', party:'🎊🦫', royal:'👑🦫', kawaii:'🌸🦫' };
 
         function applyTheme(name) {
             const t = THEMES[name] || THEMES.purple;
@@ -261,14 +323,34 @@
                 avatarEl.src       = data.avatar || '';
                 userEl.textContent = data.user || 'Cumpleañero';
 
+                // Apply animation class
+                alertEl.className = 'anim-' + (data.anim || 'default');
+
                 // Apply theme
                 applyTheme(data.theme || 'purple');
 
                 // Apply emoji
                 emojiEl.textContent = data.emoji || '🎉';
-                
+
+                // Apply age badge
+                if (data.age && data.age > 0) {
+                    ageNumEl.textContent = data.age;
+                    ageEl.style.display = 'inline-flex';
+                } else {
+                    ageEl.style.display = 'none';
+                }
+
+                // Apply capybara mascot
+                const capiIcon = CAPI_ICONS[data.capi] || '';
+                if (capiIcon) {
+                    capiEl.textContent  = capiIcon;
+                    capiEl.style.display = 'block';
+                } else {
+                    capiEl.style.display = 'none';
+                }
+
                 if (data.message) {
-                    msgEl.textContent   = `“${data.message}”`;
+                    msgEl.textContent   = `"${data.message}"`;
                     msgEl.style.display = 'block';
                 } else {
                     msgEl.style.display = 'none';

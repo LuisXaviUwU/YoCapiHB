@@ -556,24 +556,35 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                 </div>
 
                 <div class="pers-row">
+                    <label class="pers-label">🎂 Edad (opcional)</label>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="number" class="custom-alert-age" min="1" max="120" placeholder="Ej: 25"
+                            style="width:90px; padding:7px 10px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.25); color:#fff; font-size:0.9rem; font-family:inherit; outline:none;">
+                        <span style="font-size:0.76rem; color:var(--text-dim);">Aparecerá animada en el overlay</span>
+                    </div>
+                </div>
+
+                <div class="pers-row">
                     <label class="pers-label">✨ Emoji</label>
                     <div class="emoji-picker">
-                        ${['🎉','🎂','🎈','⭐','🦄','🔥','💜','🌸','🌟','👑'].map((em, i) =>
+                        ${['🎉','🎂','🎈','⭐','🦄','🔥','💜','🌸','🌟','👑','🐾','🦫','🍀','🎊','🏆'].map((em, i) =>
                             `<button class="emoji-opt ${i===0?'selected':''}" data-emoji="${em}">${em}</button>`
                         ).join('')}
                     </div>
                 </div>
 
                 <div class="pers-row">
-                    <label class="pers-label">🎨 Color</label>
+                    <label class="pers-label">🎨 Tema de color</label>
                     <div class="theme-picker">
                         ${[
-                            {id:'purple',color:'#9146ff',label:'Morado'},
-                            {id:'pink',  color:'#ff6bcb',label:'Rosa'},
-                            {id:'gold',  color:'#f7d046',label:'Dorado'},
-                            {id:'blue',  color:'#4fc3f7',label:'Azul'},
-                            {id:'green', color:'#3ddc84',label:'Verde'},
-                            {id:'red',   color:'#ff5c5c',label:'Rojo'},
+                            {id:'purple',  color:'#9146ff', label:'Morado'},
+                            {id:'pink',    color:'#ff6bcb', label:'Rosa'},
+                            {id:'gold',    color:'#f7d046', label:'Dorado'},
+                            {id:'blue',    color:'#4fc3f7', label:'Azul'},
+                            {id:'green',   color:'#3ddc84', label:'Verde'},
+                            {id:'red',     color:'#ff5c5c', label:'Rojo'},
+                            {id:'capybara',color:'#c9956a', label:'Capibara'},
+                            {id:'capinight',color:'#7b5ea7',label:'Capibara Noche'},
                         ].map((t, i) =>
                             `<button class="theme-opt ${i===0?'selected':''}" data-theme="${t.id}" data-color="${t.color}" title="${t.label}"
                                 style="background:${t.color};"></button>`
@@ -581,8 +592,39 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                     </div>
                 </div>
 
+                <div class="pers-row">
+                    <label class="pers-label">🌟 Animación del overlay</label>
+                    <div class="anim-picker">
+                        ${[
+                            {id:'default', label:'⬆️ Deslizar'},
+                            {id:'bounce',  label:'🏀 Rebote'},
+                            {id:'zoom',    label:'🔍 Zoom'},
+                            {id:'spin',    label:'🌀 Giro'},
+                        ].map((a, i) =>
+                            `<button class="anim-opt ${i===0?'selected':''}" data-anim="${a.id}">${a.label}</button>`
+                        ).join('')}
+                    </div>
+                </div>
+
+                <div class="pers-row">
+                    <label class="pers-label">🦫 Mascota Capibara</label>
+                    <div class="capi-picker">
+                        ${[
+                            {id:'none',    emoji:'❌', label:'Sin capibara'},
+                            {id:'cute',    emoji:'🦫', label:'Capibara feliz'},
+                            {id:'party',   emoji:'🎊🦫', label:'Capibara de fiesta'},
+                            {id:'royal',   emoji:'👑🦫', label:'Capibara rey'},
+                            {id:'kawaii',  emoji:'🌸🦫', label:'Capibara kawaii'},
+                        ].map((c, i) =>
+                            `<button class="capi-opt ${i===0?'selected':''}" data-capi="${c.id}" title="${c.label}">${c.emoji}</button>`
+                        ).join('')}
+                    </div>
+                </div>
+
                 <input type="hidden" class="selected-emoji" value="🎉">
                 <input type="hidden" class="selected-theme" value="purple">
+                <input type="hidden" class="selected-anim" value="default">
+                <input type="hidden" class="selected-capi" value="none">
                 ` : ''}
             </div>
 
@@ -687,12 +729,21 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
     const counterEl = controlPanel.querySelector('.msg-char-counter');
     const emojiButtons = controlPanel.querySelectorAll('.emoji-opt');
     const themeButtons = controlPanel.querySelectorAll('.theme-opt');
+    const animButtons  = controlPanel.querySelectorAll('.anim-opt');
+    const capiButtons  = controlPanel.querySelectorAll('.capi-opt');
     const launchBtn = $('launch-selected-sound');
 
     if (selectedSoundSelect) {
         selectedSoundSelect.value = selectedLaunchSoundFile;
         selectedSoundSelect.onchange = () => {
             selectedLaunchSoundFile = selectedSoundSelect.value;
+            // Update preview button label immediately
+            const meta = availableSounds.find(s => s.file === selectedLaunchSoundFile) || availableSounds[0];
+            if (previewSelectedLabel && meta) {
+                previewSelectedLabel.textContent = `Escuchar ${meta.name || meta.file.replace('.mp3','')}`;
+            }
+            // Also stop any playing preview so icon resets
+            if (previewPlayBtn === previewSelectedBtn) stopPreviewAudio();
         };
     }
 
@@ -726,16 +777,42 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
         };
     });
 
+    animButtons.forEach(btn => {
+        btn.onclick = () => {
+            animButtons.forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            const hid = controlPanel.querySelector('.selected-anim');
+            if (hid) hid.value = btn.dataset.anim;
+        };
+    });
+
+    capiButtons.forEach(btn => {
+        btn.onclick = () => {
+            capiButtons.forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            const hid = controlPanel.querySelector('.selected-capi');
+            if (hid) hid.value = btn.dataset.capi;
+        };
+    });
+
     if (launchBtn && isTodayBirthday && obsConnected && !cooldownActive) {
         launchBtn.onclick = async () => {
             const soundFile = selectedSoundSelect ? selectedSoundSelect.value : selectedLaunchSoundFile;
             if (!soundFile) return;
 
-            const customMsg = msgInput ? msgInput.value.trim() : '';
+            const customMsg  = msgInput ? msgInput.value.trim() : '';
+            const ageInput   = controlPanel.querySelector('.custom-alert-age');
+            const fontInput  = controlPanel.querySelector('.custom-alert-font');
             const emojiInput = controlPanel.querySelector('.selected-emoji');
             const themeInput = controlPanel.querySelector('.selected-theme');
+            const animInput  = controlPanel.querySelector('.selected-anim');
+            const capiInput  = controlPanel.querySelector('.selected-capi');
             const selEmoji = emojiInput ? emojiInput.value : '🎉';
             const selTheme = themeInput ? themeInput.value : 'purple';
+            const selAnim  = animInput  ? animInput.value  : 'default';
+            const selCapi  = capiInput  ? capiInput.value  : 'none';
+            const selAge   = ageInput && ageInput.value ? parseInt(ageInput.value) : null;
+            const selFont  = fontInput ? fontInput.value : 'sans-serif';
 
             if (customMsg) {
                 if (customMsg.length > 80) {
@@ -746,10 +823,15 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                     await customAlert('No se permiten enlaces en el mensaje.');
                     return;
                 }
-                if (/[^\w\sñÑáéíóúÁÉÍÓÚüÜ!?¡¿.,()\-:;']/i.test(customMsg)) {
+                if (/[^\w\sñÑáéíóúÁÉÍÓÚüÜ!?¡¿.,()\/\-:;']/i.test(customMsg)) {
                     await customAlert('El mensaje contiene caracteres no permitidos.');
                     return;
                 }
+            }
+
+            if (selAge !== null && (selAge < 1 || selAge > 120)) {
+                await customAlert('La edad debe estar entre 1 y 120.');
+                return;
             }
 
             const soundMeta = availableSounds.find(sound => sound.file === soundFile);
@@ -760,12 +842,16 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
             launchBtn.disabled = true;
             launchBtn.innerHTML = '⏳ Enviando...';
             if (msgInput) msgInput.disabled = true;
+            if (ageInput) ageInput.disabled = true;
 
             const r = await api('POST', '/api/birthday/alert', {
                 sound_file: soundFile,
                 message: customMsg,
                 emoji: selEmoji,
-                theme: selTheme
+                theme: selTheme,
+                anim: selAnim,
+                capi: selCapi,
+                age: selAge
             });
 
             if (r.ok) {
@@ -785,6 +871,7 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                 launchBtn.disabled = false;
                 launchBtn.innerHTML = '🚀 Lanzar al stream';
                 if (msgInput) msgInput.disabled = false;
+                if (ageInput) ageInput.disabled = false;
                 await customAlert('Error: ' + (r.data?.error || 'Error desconocido'));
             }
         };
