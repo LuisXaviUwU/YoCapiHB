@@ -425,7 +425,7 @@ function showRegistered(me) {
         cdNote.style.display = 'none'; // Se oculta inicialmente, se mostrará tras el éxito de la alerta
     }
 
-    renderSoundsPreview(sounds || [], birthday, isTodayBirthday, me.obs_connected);
+    renderSoundsPreview(sounds || [], me, isTodayBirthday, me.obs_connected);
 
     showState('state-registered');
 }
@@ -458,7 +458,8 @@ function stopPreviewAudio() {
     }
 }
 
-function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, obsConnected = false) {
+function renderSoundsPreview(sounds, me = null, isTodayBirthday = false, obsConnected = false) {
+    const birthday = me ? me.birthday : null;
     const section = $('sounds-preview-section');
     const list    = $('sounds-preview-list');
     const cdNote  = $('global-cooldown-note');
@@ -632,11 +633,11 @@ function renderSoundsPreview(sounds, birthday = null, isTodayBirthday = false, o
                         <div id="live-preview-alert" class="preview-overlay">
                             <div class="preview-avatar-wrap">
                                 <div class="preview-avatar-ring"></div>
-                                <img src="${birthday ? birthday.profile_image : ''}" alt="" class="preview-avatar">
+                                <img src="${me ? me.profile_image : ''}" alt="" class="preview-avatar">
                             </div>
                             <div class="preview-content">
                                 <div class="preview-title">🎂 ¡Hoy es su cumpleaños!</div>
-                                <div class="preview-user">${birthday ? birthday.display_name : 'Usuario'}</div>
+                                <div class="preview-user">${me ? me.display_name : 'Usuario'}</div>
                                 <div id="live-preview-age" class="preview-age-badge" style="display:none;">
                                     🎂 <span class="preview-age-num" id="live-preview-age-num">0</span> años
                                 </div>
