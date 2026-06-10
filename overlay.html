@@ -91,6 +91,18 @@
             white-space: nowrap;
         }
 
+        .alert-birthday-date {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.2;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, var(--theme-solid, #9146ff), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
         .alert-user {
             font-size: 1.6rem;
             font-weight: 800;
@@ -214,7 +226,8 @@
             <img id="alert-avatar" src="" alt="" class="alert-avatar">
         </div>
         <div class="alert-content">
-            <div class="alert-title">🎂 ¡Hoy es su cumpleaños!</div>
+            <div id="alert-title" class="alert-title">🎂 ¡Hoy es su cumpleaños!</div>
+            <div id="alert-birthday-date" class="alert-birthday-date" style="display:none;"></div>
             <div id="alert-user" class="alert-user">Usuario</div>
             <div id="alert-age" class="alert-age-badge" style="display:none;">
                 🎂 <span class="alert-age-num" id="alert-age-num">0</span> años
@@ -237,6 +250,8 @@
         const msgEl      = document.getElementById('alert-message');
         const ageEl      = document.getElementById('alert-age');
         const ageNumEl   = document.getElementById('alert-age-num');
+        const titleEl    = document.getElementById('alert-title');
+        const bdayDateEl = document.getElementById('alert-birthday-date');
         const emojiEl    = document.querySelector('.alert-emoji');
         const queueBadge = document.getElementById('alert-queue-badge');
         const statusEl   = document.getElementById('status');
@@ -306,6 +321,16 @@
             const show = () => {
                 avatarEl.src       = data.avatar || '';
                 userEl.textContent = data.user || 'Cumpleañero';
+
+                if (data.is_grace_period && data.birthday_date) {
+                    titleEl.textContent = '🎂 Su cumpleaños fue el';
+                    bdayDateEl.textContent = data.birthday_date;
+                    bdayDateEl.style.display = 'block';
+                } else {
+                    titleEl.textContent = '🎂 ¡Hoy es su cumpleaños!';
+                    bdayDateEl.textContent = '';
+                    bdayDateEl.style.display = 'none';
+                }
 
                 // Apply animation class
                 alertEl.className = 'anim-' + (data.anim || 'default');

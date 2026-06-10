@@ -647,7 +647,8 @@ function renderSoundsPreview(sounds, me = null, canCelebrate = false, obsConnect
                                 <img src="${me ? me.profile_image : ''}" alt="" class="preview-avatar">
                             </div>
                             <div class="preview-content">
-                                <div class="preview-title">🎂 ¡Hoy es tu cumpleaños!</div>
+                                <div id="live-preview-title" class="preview-title">${birthday && birthday.is_grace_period ? '🎂 Su cumpleaños fue el' : '🎂 ¡Hoy es tu cumpleaños!'}</div>
+                                <div id="live-preview-birthday-date" class="preview-birthday-date" style="${birthday && birthday.is_grace_period ? '' : 'display:none;'}">${birthday && birthday.is_grace_period ? formatBirthday(birthday.month, birthday.day) : ''}</div>
                                 <div class="preview-user">${me ? me.display_name : 'Usuario'}</div>
                                 <div id="live-preview-age" class="preview-age-badge" style="display:none;">
                                     🎂 <span class="preview-age-num" id="live-preview-age-num">0</span> años
