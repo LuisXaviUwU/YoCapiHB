@@ -378,8 +378,13 @@
                     const audio = new Audio(`${BACKEND}/music/${data.sound}${tok}`);
                     audio.volume = 1;
                     audio.play().catch(() => {});
-                    audio.addEventListener('ended', advance);
-                    setTimeout(advance, DISPLAY_MS); // seguridad si el audio es muy largo
+                    const MIN_MS = data.sound === 'MBMusica.mp3' ? 15_000 : 10_000;
+                    const shownAt = Date.now();
+                    audio.addEventListener('ended', () => {
+                        const remaining = Math.max(0, MIN_MS - (Date.now() - shownAt));
+                        setTimeout(advance, remaining);
+                    });
+                    setTimeout(advance, Math.max(DISPLAY_MS, MIN_MS)); // tope de seguridad
                 } else {
                     setTimeout(advance, DISPLAY_MS);
                 }
